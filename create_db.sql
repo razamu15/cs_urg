@@ -105,7 +105,7 @@ CREATE TABLE `Completed_Surveys`(
 );
 
 insert into Studies (title, info, is_active)values("tools", "this study is to simulate the tools study were gonna do", 1);
-insert into Surveys (study_id, title, info, expiry_date, is_published) values (1, "survey 1", "this will be the round 1 classification", null, 0);
+insert into Surveys (study_id, title, info, expiry_date, is_published) values (1, "survey 1", "this will be the round 1 classification", '2019-08-29', 1);
 
 insert into Question_Types (label, has_text, has_options, has_file) values ("classification", 0, 1, 1);
 insert into Question_Types (label, has_text, has_options, has_file) values ("summary", 1, 0, 1);
