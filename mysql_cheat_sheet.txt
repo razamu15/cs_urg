@@ -1,0 +1,13 @@
+sql cheatsheet
+
+select current_user(); - currently logged in user
+show databases; list of all databases on the mysql server
+use database; connect to this databse/select this database to be "used"
+select databse(); the database currently selected
+show tables; list of all the tables in the current database
+desc {db_name}.{table_name}; list of all the columns(feilds) defined for that table. dont need db_name if that db is currently in "use"
+
+
+
+-----to change default mysql root password, other ones didnt work
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'password'

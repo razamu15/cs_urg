@@ -1,0 +1,19 @@
+<html>
+    <head>
+        <title>this is da page</title>
+    </head>
+    <body>
+        <table>
+            <h1>These are the ques types i have it</h1>
+            <tr><th>label</th><th>has_text</th><th>has_options</th><th>has_file</th></tr>
+            <% for (const row of query_result) { %>
+                <tr>
+                    <td><%= row.label %></td>
+                    <td><%= row.has_text %></td>
+                    <td><%= row.has_options %></td>
+                    <td><%= row.has_file %></td>
+                </tr>
+            <% } %>
+        </table>
+    </body>
+</html>

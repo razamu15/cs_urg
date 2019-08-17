@@ -1,0 +1,23 @@
+{
+  "name": "cs_urg",
+  "version": "1.0.0",
+  "description": "development web app",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/razamu15/cs_urg.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/razamu15/cs_urg/issues"
+  },
+  "homepage": "https://github.com/razamu15/cs_urg#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "mysql": "^2.17.1"
+  }
+}
