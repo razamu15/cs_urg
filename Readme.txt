@@ -2,7 +2,7 @@ pacakges not listed in package.json that we will most likely use:
 redis, connect-redis, express-session
 
 to install the packages that ARE currently listed in the package.json
-just run npm install in the same directory, these are: express and mysql
+just run npm install in the same directory, these are: express, mysql & ejs 
 
 the node_mysql,js file is just some testing on working with the 
 mysql node js extensions and getting andlooping through the data.
