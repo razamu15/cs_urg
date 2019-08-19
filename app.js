@@ -5,6 +5,7 @@ Main express app
 const express = require('express');
 const mysql = require('mysql');
 
+
 // define databse connection object and connet to the mysql database
 var dbconn = mysql.createConnection({
     host:'localhost',
@@ -23,7 +24,7 @@ dbconn.connect(function(err) {
 });
 
 // function that will return a promise you can call await on to wait
-// untill the database query is resolved so you can then work with the data
+// until the database query is resolved so you can then work with the data
 function db_call(query_str){
   return new Promise( (resolve, reject) => {
     // execute a sql query to show all users
@@ -43,7 +44,7 @@ const app = express();
 app.set('view engine', 'ejs');
 app.set(express.json());
 app.set(express.urlencoded({extended: false}));
-// deifne the route that will house all of our static files
+// define the route that will house all of our static files
 app.use(express.static('static'));
 
 app.get('/', (req, res) => {
@@ -69,6 +70,31 @@ app.get('/bob', (req, res) => {
   console.log('this is bob');
   res.send("hi, i am bob");
 });
+
+app.get('/login', (req, res) => {
+  res.send('Login Page')
+})
+
+app.post('/login', (req,res) => {
+  res.send('Post request on login page')
+})
+
+app.get('/adminlogin', (req, res) => {
+  res.send('Admin login Page')
+})
+
+app.post('/adminlogin', (req,res) => {
+  res.send('Post request on admin login page')
+})
+
+app.get('/register', (req, res) => {
+  res.send('register Page')
+})
+
+app.post('/register', (req,res) => {
+  res.send('Post request on register page')
+})
+
 
 
 app.listen(3000, () => {
