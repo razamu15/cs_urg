@@ -4,6 +4,7 @@ Main express app
 // no need to install and include body parser because it was added back into expresss core in verison 4.16 and we are on version 4.17
 const express = require('express');
 const mysql = require('mysql');
+const bodyParser = require('body-parser');
 
 // define databse connection object and connet to the mysql database
 var dbconn = mysql.createConnection({
@@ -41,14 +42,23 @@ function db_call(query_str){
 // create the express app and configure all the middle ware
 const app = express();
 app.set('view engine', 'ejs');
-app.set(express.json());
-app.set(express.urlencoded({extended: false}));
+
+/* so bodyparser was taken out of core express in 4.16 but added back in 4.17 
+ * and were using 4.17 do the express.json() methods and shit should've worked
+ * but they arent so imma go with the body parser for now */
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+// app.set(express.json());
+// app.set(express.urlencoded({extended: true}));
+
+
 // deifne the route that will house all of our static files
 app.use(express.static('static'));
 
+// tried sendfile but that doesnt work without setting up __dirname
 app.get('/', (req, res) => {
   console.log('mans got a get request on root');
-  res.send("jimmy");
+  res.send("this is the root!");
 });
 
 app.get('/question_types', async (req, res) => {
@@ -61,15 +71,27 @@ app.get('/question_types', async (req, res) => {
   }
   // send the query response to render template and render the tempplate using it
   res.render('ques_types');
-
 });
 
 
-app.get('/bob', (req, res) => {
-  console.log('this is bob');
-  res.send("hi, i am bob");
+
+app.get('/create_survey', async (req, res) => {
+  // we shall wait untill we ge the result from the query
+  try{
+    ques_types_query = await db_call("select * from Question_Types;");
+  } catch (err){
+    console.log("doesnt matter query works" + err);
+    res.send("something went wrong");
+  }
+  res.render('make_demo');
 });
 
+
+
+app.post('/create_survey', async (req, res) => {
+  console.log(req.body);
+  res.send("thanks for making a new survey!");
+});
 
 app.listen(3000, () => {
     console.log(`Server running on port 3000`);
