@@ -74,7 +74,8 @@ app.get('/question_types', async (req, res) => {
 });
 
 
-
+// STILL HAVE TO MAKE THE FUNCTINALITY OF MAKING A TEXT ENTRY OPTION IN THE FRONT END JS
+// ALSO NEED TO USE THE JQUERY DATA TO SEND QUESTION NUM ALONG WITH CREATION DATA
 app.get('/create_survey', async (req, res) => {
   // we shall wait untill we ge the result from the query
   try{
@@ -86,11 +87,27 @@ app.get('/create_survey', async (req, res) => {
   res.render('make_demo');
 });
 
-
-
 app.post('/create_survey', async (req, res) => {
   console.log(req.body);
   res.send("thanks for making a new survey!");
+});
+
+// for this route i will run the query that will get all the surveys for this study
+// then use ejs to render in a thingy for each survey and build the link for each
+// with the templating
+app.get('/study/:study_id', async (req, res) =>{
+  console.log("is is the base study page that is going to list all the studies in this");
+  res.send(req.params.study_id);
+  console.log(req.url);
+});
+
+// This is gonna be a simple page with some posts for updating this survey in the DB
+app.get('/study/:study_id/survey/:survey_id', async (req, res) =>{
+  console.log("this is the url parameter page");
+  rere = "study id: " + req.params.study_id;
+  rere += "\n survey id: " + req.params.survey_id;
+  res.send(rere);
+  console.log(req.url);
 });
 
 app.listen(3000, () => {
