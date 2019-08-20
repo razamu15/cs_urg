@@ -1,5 +1,5 @@
-create database test_db;
-use test_db;
+create database csurg_db;
+use csurg_db;
 
 CREATE TABLE `Users` (
 	`user_id` INT NOT NULL AUTO_INCREMENT,
