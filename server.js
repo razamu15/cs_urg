@@ -52,16 +52,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // app.set(express.urlencoded({extended: true}));
 
 
-// deifne the route that will house all of our static files
-app.use(express.static('static'));
-
-// tried sendfile but that doesnt work without setting up __dirname
-app.get('/', (req, res) => {
-  console.log('mans got a get request on root');
-  res.send("this is the root!");
-});
-
-app.get('/question_types', async (req, res) => {
+app.get('/create_survey', async (req, res) => {
   // we shall wait untill we ge the result from the query
   try{
     query_result = await db_call("select * from Question_Types;");
@@ -69,45 +60,49 @@ app.get('/question_types', async (req, res) => {
     console.log("doesnt matter query works" + err);
     res.send("something went wrong");
   }
-  // send the query response to render template and render the tempplate using it
-  res.render('ques_types');
-});
-
-
-// STILL HAVE TO MAKE THE FUNCTINALITY OF MAKING A TEXT ENTRY OPTION IN THE FRONT END JS
-// ALSO NEED TO USE THE JQUERY DATA TO SEND QUESTION NUM ALONG WITH CREATION DATA
-app.get('/create_survey', async (req, res) => {
-  // we shall wait untill we ge the result from the query
-  try{
-    ques_types_query = await db_call("select * from Question_Types;");
-  } catch (err){
-    console.log("doesnt matter query works" + err);
-    res.send("something went wrong");
-  }
-  res.render('make_demo');
+  res.render('make_survey', { ques_types_query : query_result });
 });
 
 app.post('/create_survey', async (req, res) => {
   console.log(req.body);
+  console.log(req.body.length);
   res.send("thanks for making a new survey!");
 });
+
+app.get('/adminhome', async (req, res) =>{
+  // we shall wait untill we ge the result from the query
+  try{
+    query_result = await db_call("select * from Studies;");
+  } catch (err){
+    console.log("doesnt matter query works" + err);
+    res.send("something went wrong");
+  }
+  // here we will list all the studies that are active and use the query to render in the html properly
+  res.render("admin_home", { query_result:query_result });
+})
 
 // for this route i will run the query that will get all the surveys for this study
 // then use ejs to render in a thingy for each survey and build the link for each
 // with the templating
-app.get('/study/:study_id', async (req, res) =>{
-  console.log("is is the base study page that is going to list all the studies in this");
-  res.send(req.params.study_id);
-  console.log(req.url);
+app.get('/adminhome/study/:study_id', async (req, res) =>{
+  // use the url parameter to get the all the surveys for the needed study
+  try{
+    query_result = await db_call(`select * from Surveys where study_id = ${req.params.study_id};`);
+  } catch (err){
+    console.log("doesnt matter query works" + err);
+    res.send("something went wrong");
+  }
+  // query the database to get all the surveys that belong to the id req.params.study_id
+  console.log(req.params.study_id);
+  res.render("survey");
+  
 });
 
 // This is gonna be a simple page with some posts for updating this survey in the DB
-app.get('/study/:study_id/survey/:survey_id', async (req, res) =>{
-  console.log("this is the url parameter page");
-  rere = "study id: " + req.params.study_id;
-  rere += "\n survey id: " + req.params.survey_id;
-  res.send(rere);
-  console.log(req.url);
+app.get('/adminhome/study/:study_id/survey/:survey_id', async (req, res) =>{
+  // use the post form data and req.params.survey_id to update this survey's record in the DB
+  console.log("update the expiry, publish or delete this survey: ", req.params.survey_id);
+  res.send("study id: " + req.params.study_id + "\n survey id: " + req.params.survey_id);
 });
 
 app.listen(3000, () => {
