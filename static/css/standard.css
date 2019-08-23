@@ -1,0 +1,121 @@
+* {
+    padding: 0 0 0 0;
+    margin: 0 0 0 0;
+    font-family: Ubuntu;
+    box-sizing: border-box;
+}
+
+#logo_wrap {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    height: 90px;
+}
+
+#logo_img {
+    margin: 5px;
+    height: 90%;
+}
+
+#page_header {
+    font-weight: 900;
+    font-size: 2.5vmax;
+}
+
+#navbar {
+    display: flex;
+    background-color: #8fb4d9;
+    justify-content: space-between;
+    align-items: center;
+    color: white;
+}
+
+#navlinks {
+    display: inline-flex;
+    justify-content: space-around;
+    align-items: center;
+    list-style-type: none;
+    margin-right: 10px;
+}
+
+.navlink {
+    padding: 15px;
+    text-decoration: none;
+    color: white;
+    font-weight: 800;
+    font-size: 1.8vmax;
+    transition: text-shadow 0.7s ease;
+}
+
+.navlink:hover {
+    text-shadow: 2px 2px 8px #000000;
+}
+
+#login-btn {
+    border-radius: 6px;
+    border-color: #425a7b;
+    cursor: pointer;
+    font-weight: 800;
+    font-size: 1.8vmax;
+    padding: 10px 15px;
+    background-color: #425a7b;
+    color: white;
+    transition: box-shadow 0.7s ease;
+}
+
+#login-btn:hover {
+    box-shadow: 1.5px 1.5px 1.5px 1.5px #4a4a4a;
+}
+
+body {
+    background-color: #f7f7f7;
+}
+
+#content {
+    background-color: white;
+    box-shadow: 2px 4px 8px 2px rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+    height: auto;
+    width: 88%;
+    display: block;
+    position: relative;
+    left: 4.7%;
+    margin: 30 0 30 0;
+    z-index: 0.8;
+    padding: 1% 0% 3% 3%;
+}
+
+.sub-header {
+    display: block;
+    font-weight: 1000;
+    font-size: 1.8vmax;
+    border-bottom: 1px solid #637c95;
+    color: #637c95;
+    margin-bottom: 10px;
+    padding: 5 5;
+}
+
+#pg-cont {
+    width: 94%;
+    margin-bottom: 15px;
+}
+
+#intro {
+    display: flex;
+    justify-content: space-around;
+}
+
+#intro-img {
+    height: 250px;
+    width: 40%;
+    margin: 10 10;
+}
+
+#body-para {
+    display: flex;
+    width: auto;
+    height: auto;
+    align-items: center;
+    margin: 0 0 0 15;
+    font-size: 1.5vmax;
+    line-height: 18px;
+}

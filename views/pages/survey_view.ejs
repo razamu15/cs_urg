@@ -1,0 +1,34 @@
+<html>
+
+<head>
+    <link href="https://fonts.googleapis.com/css?family=Ubuntu" rel="stylesheet">
+    <link rel="stylesheet" href="/css/standard.css">
+    <title>this is da page</title>
+</head>
+
+<body>
+    <%- include('../partials/navbar', {action:"logout"}) %>
+    <div id="content">
+        <table>
+            <h1>This Survey is configured as follows you can change it if you want</h1>
+            <tr>
+                <th>Survey publication status</th>
+                <th>Survey expiry_date</th>
+                <th>Delete survey</th>
+            </tr>
+            <tr>
+                <td><%= survey_info.is_published %></td>
+                <td><%= survey_info.expiry_date %></td>
+                <td><button>Delete this survey</button></td>
+            </tr>
+            <tr>
+                <td><input type="text"></td>
+                <td><input type="text"></td>
+                <td></td>
+            </tr>
+
+        </table>
+    </div>
+</body>
+
+</html>

@@ -15,7 +15,7 @@
     <div id="form_wrap">
 
 
-        <form action="/create_survey" method="POST" enctype='application/x-www-form-urlencoded'>
+        <form action="/adminhome/study/<%= study_id %>/create_survey" method="POST" enctype='application/x-www-form-urlencoded'>
             <fieldset name="survey_data" id="survey_data">
                 <legend>Enter the Survey related info Here</legend>
 
@@ -132,6 +132,7 @@
                 $("#create_text_opts").remove();
                 // disable all the other input fields
                 $(`#${qnum + '_title'}`).prop("readonly", true);
+                $(`#${qnum + '_count'}`).prop("readonly", true);
                 $(`#${qnum + '_info'}`).prop("readonly", true);
                 $(`#${qnum + '_text'}`).prop("readonly", true);
                 // now we loop through all the individual options and disable those
