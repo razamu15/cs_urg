@@ -4,6 +4,7 @@
   "description": "development web app",
   "main": "server.js",
   "scripts": {
+    "start": "node app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -18,6 +19,7 @@
   "homepage": "https://github.com/razamu15/cs_urg#readme",
   "dependencies": {
     "express": "^4.17.1",
+    "express-session": "^1.16.2",
     "mysql": "^2.17.1"
   }
 }

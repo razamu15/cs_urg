@@ -5,6 +5,8 @@ Main express app
 const express = require('express');
 const mysql = require('mysql');
 const bodyParser = require('body-parser');
+const session = require('express-session');
+const path = require('path');
 
 
 // define databse connection object and connet to the mysql database
@@ -47,6 +49,7 @@ app.set('view engine', 'ejs');
 /* so bodyparser was taken out of core express in 4.16 but added back in 4.17 
  * and were using 4.17 do the express.json() methods and shit should've worked
  * but they arent so imma go with the body parser for now */
+app.use(session({secret: 'ssshhhhh',saveUninitialized: true,resave: true}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 // app.set(express.json());
@@ -111,13 +114,6 @@ app.get('/study/:study_id/survey/:survey_id', async (req, res) =>{
   console.log(req.url);
 });
 
-app.get('/login', (req, res) => {
-  res.send('Login Page')
-})
-
-app.post('/login', (req,res) => {
-  res.send('Post request on login page')
-})
 
 app.get('/adminlogin', (req, res) => {
   res.send('Admin login Page')
@@ -127,12 +123,34 @@ app.post('/adminlogin', (req,res) => {
   res.send('Post request on admin login page')
 })
 
+
+var sess;
 app.get('/register', (req, res) => {
-  res.send('register Page')
+  res.sendFile(path.join(__dirname + "/views/register.html"));
 })
 
 app.post('/register', (req,res) => {
+
+  // TODO - Add code to do database update on post request.
   res.send('Post request on register page')
+})
+
+
+app.get('/login', (req, res) => {
+  sess = req.session;
+  if (sess.username) {
+    res.send('Login Sucessfull');
+  }
+  res.sendFile(path.join(__dirname + "/views/user_login.html")); 
+})
+
+app.post('/login', (req,res) => {
+  sess = req.session;
+  sess.username = req.body.username;
+  sess.password = req.body.password;
+  console.log(req.body.username);
+  console.log(req.body.password);
+  res.redirect('/login');
 })
 
 
