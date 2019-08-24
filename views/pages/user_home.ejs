@@ -1,0 +1,35 @@
+<html>
+
+<head>
+    <link href="https://fonts.googleapis.com/css?family=Ubuntu" rel="stylesheet">
+    <link rel="stylesheet" href="/css/standard.css">
+    <title>this is da page</title>
+</head>
+
+<body>
+    <%- include('../partials/navbar', {action:"logout"}) %>
+    <div id="content">
+        <table>
+            <h1>These are the Surveys i have it in this Study</h1>
+            <tr>
+                <th>Survey Title</th>
+                <th>Survey Info</th>
+                <th>Survey Link</th>
+                <th>Survey Expiry</th>
+            </tr>
+            <% for (const row of available_surveys) { %>
+            <tr>
+                <td><%= row.title %></td>
+                <td><%= row.info %></td>
+                <td><a href="/userhome/survey/<%= row.survey_id %>">This is Zoinked right now</a>
+                </td>
+                <td><%= row.expiry_date %></td>
+            </tr>
+            <% } %>
+        </table>
+
+    </div>
+
+</body>
+
+</html>

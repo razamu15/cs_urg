@@ -1,21 +1,18 @@
 <html>
 
 <head>
+    <link href="https://fonts.googleapis.com/css?family=Ubuntu" rel="stylesheet">
+    <link rel="stylesheet" href="/css/standard.css">
     <title>this is da page</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-    <style>
-        body{
-            background-color: gray;
-        }
-    </style>
 </head>
 
 <body>
     <h1>Create Survey Page</h1>
     <div id="form_wrap">
 
-
-        <form action="/adminhome/study/<%= study_id %>/create_survey" method="POST" enctype='application/x-www-form-urlencoded'>
+        <form action="/adminhome/study/<%= study_id %>/create_survey" method="POST"
+            enctype='application/x-www-form-urlencoded'>
             <fieldset name="survey_data" id="survey_data">
                 <legend>Enter the Survey related info Here</legend>
 
@@ -30,8 +27,8 @@
                 <legend>Enter the Questions Related info here</legend>
 
             </fieldset>
-                <input type="submit" value="Submit">
-                <button type="button" id="reset_survey">Reset</button>
+            <input type="submit" value="Submit">
+            <button type="button" id="reset_survey">Reset</button>
         </form>
 
         <!-- this form is separate from the actualy survey cration form and is only used for creating a ques,
@@ -64,7 +61,7 @@
         $(document).ready(function () {
 
             // this is the handler for the button that will let the user reset the form if they make a mistake
-            $("#reset_survey").click(function(){
+            $("#reset_survey").click(function () {
                 location.reload();
             });
 
@@ -72,7 +69,7 @@
             // this is an intercepter to the default form submit event which is a post request
             $("#create_ques").submit(function (event) {
                 // here check to make sure that there are no open questions before we let user make another question
-                if (unsaved_ques){
+                if (unsaved_ques) {
                     alert("save the previous question before making the next one");
                     event.preventDefault();
                     return;
@@ -99,10 +96,10 @@
                             <a href="#">File Link Here</a><br>
                         </div>
                         <span id="${qnum + '_text'}">open ended response: <textarea disabled></textarea></span>
-                        <div id="${qnum + '_opts'}">
+                        <ul id="${qnum + '_opts'}">
                             <button type="button" id="create_opts" >Create New Option</button>
                             <button type="button" id="create_text_opts" >Create Text Entry Option</button>
-                        </div>
+                        </ul>
                         <!-- this extra save button will stop the question from being editable anymore
                             and it will also make the create option button and itself dissappear for this question-->
                             <button type="button" id="save_ques" >Save Question</button>
@@ -115,9 +112,9 @@
                     // if the question, doesnt have a file attach then the count defaults to one
                     $(`#${qnum + '_count'}`).val(1);
                     $(`#${qnum + '_file'}`).hide();
-                } 
-                if (!show_text) {$(`#${qnum + '_text'}`).hide();}
-                if (!show_options) {$(`#${qnum + '_opts'}`).hide();}
+                }
+                if (!show_text) { $(`#${qnum + '_text'}`).hide(); }
+                if (!show_options) { $(`#${qnum + '_opts'}`).hide(); }
                 // and we also wanna always hide the type if from the user because it doesnt concern them
                 $(`#${qnum + '_type_id'}`).hide();
                 // set the question state tracking variable
@@ -126,7 +123,7 @@
                 event.preventDefault();
             });
 
-            $(document).on('click', "#save_ques", function(){
+            $(document).on('click', "#save_ques", function () {
                 // remove the button to add more options
                 $("#create_opts").remove();
                 $("#create_text_opts").remove();
@@ -148,17 +145,17 @@
                 unsaved_ques = false;
             });
 
-            $(document).on('click', "#create_opts", function(){
+            $(document).on('click', "#create_opts", function () {
                 // add this line to the current question numbers options div
-                option_template = `<input type="text" name="${qnum + '_op_' + opnum}" id="${qnum + '_op_' + opnum}" placeholder="Enter Option Label">`;
+                option_template = `<li><input type="text" name="${qnum + '_op_' + opnum}" id="${qnum + '_op_' + opnum}" placeholder="Enter Option Label"></li>`;
                 // increase opnum for next option that will be created
                 $(`#${qnum + '_opts'}`).prepend(option_template);
                 opnum += 1;
             });
 
-            $(document).on('click', "#create_text_opts", function(){
+            $(document).on('click', "#create_text_opts", function () {
                 // add this line to the current question numbers options div
-                option_template = `<input type="text" name="${qnum + '_txtop_' + opnum}" id="${qnum + '_op_' + opnum}" placeholder="Enter Option Label">:<input type="text" disabled>`;
+                option_template = `<li><input type="text" name="${qnum + '_txtop_' + opnum}" id="${qnum + '_op_' + opnum}" placeholder="Enter Option Label">:<input type="text" disabled></li>`;
                 // increase opnum for next option that will be created
                 $(`#${qnum + '_opts'}`).prepend(option_template);
                 opnum += 1;
