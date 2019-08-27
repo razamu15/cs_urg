@@ -331,6 +331,98 @@ app.post('/userhome/survey/:survey_id', (req, res) =>{
   res.send("thx for completing the survey my dawgy");
 })
 
+app.get('/getfile/ques/:ques_id', async (req, res) =>{
+  // first we run the query to get any files that have been answered at least once but not enough times
+  response_overlap = 2;
+  parital_query = `select Files.file_id, link, partials.count from (select * from Files_in_Use where ques_id = ${req.params.ques_id} and count < ${response_overlap}) as partials inner join Files on Files.file_id = partials.file_id;`;
+  try{
+    partial_results = await db_call(parital_query);
+  } catch (err) {
+    console.log("error in first query");
+    // the file was not marked inactive, something went wrong
+    res.status(501);
+    res.send();
+  }
+  // if there are not enough results(1 is always enough but we do more for randomization), then we get a "fresh" file
+  if (partial_results.length < 5) {
+    fresh_query = `select Files.file_id, link from Files where Files.file_id not in (select file_id from Files_in_Use where ques_id = ${req.params.ques_id} and count <= ${response_overlap});`;
+    try{
+      fresh_results = await db_call(fresh_query);
+    } catch (err) {
+      console.log("error in fresh query");
+      // the file was not marked inactive, something went wrong
+      res.status(501);
+      res.send();
+    }
+    // if there are no fresh files, then we revert back to the partially done files and send one of those
+    if ( fresh_results.length != 0 ){
+      // pick a random row from the new result
+      rand_int = Math.floor(Math.random() * (fresh_results.length - 1 - 0 + 1) + 0);
+      return_row = fresh_results[rand_int];
+      // insert it into the Files_in_Use table with count = 1;
+      ins_query = `insert into Files_in_Use (file_id, ques_id, count) values (${return_row.file_id}, ${req.params.ques_id}, ${1});`;
+      // wait for this file to be marked in use because we dont want to serve the same file to more people than needed
+      try {
+        insert_res = await db_call(ins_query);
+        // return with the query data
+        res.json(JSON.stringify(return_row));
+      } catch (error) {
+        console.log("error in partial wuery");
+        // the file was not marked inactive, something went wrong
+        res.status(501);
+        res.send();
+      }
+    } else {
+      // we also wanna check here if the partial query return no files then theres nothing more to give
+      if (partial_results.length == 0){
+        res.status(422);
+        res.send();
+      }
+        // there are no more frassh files left so we fall back ot the partial ones
+        // pick a random file from the list and return its info
+      rand_int = Math.floor(Math.random() * (partial_results.length - 1 - 0 + 1) + 0);
+      return_row = partial_results[rand_int];
+      // update its info and add 1 to its count in the Files_in_Use table
+      upd_query = `update Files_in_Use set count = ${ +return_row.count + 1} where file_id = ${return_row.file_id} and ques_id = ${req.params.ques_id};`;
+      // wait for this file to be marked in use because we dont want to serve the same file to more people than needed
+      try {
+        upd_result = await db_call(upd_query);
+        // return with the query data
+        res.json(JSON.stringify(return_row));
+      } catch (error) {
+        console.log("error in updated query");
+        // the file was not marked inactive, something went wrong
+        res.status(501);
+        res.send();
+      }
+    }
+  } else {
+    // pick a random file from the list and return its info
+    rand_int = Math.floor(Math.random() * (partial_results.length - 1 - 0 + 1) + 0);
+    return_row = partial_results[rand_int];
+    // update its info and add 1 to its count in the Files_in_Use table
+    upd_query = `update Files_in_Use set count = ${ +return_row.count + 1} where file_id = ${return_row.file_id} and ques_id = ${req.params.ques_id};`;
+    // wait for this file to be marked in use because we dont want to serve the same file to more people than needed
+    try {
+      upd_result = await db_call(upd_query);
+      // return with the query data
+      res.json(JSON.stringify(return_row));
+    } catch (error) {
+      console.log("error in updated wuery");
+      // the file was not marked inactive, something went wrong
+      res.status(501);
+      res.send();
+    }
+  }
+})
+
+
+/**SHIT MANZ STILL GOTTA DOOOO:
+ * ADD A DISTIBUTE OPTION THINGY TO THE CREATE A FILE TYPE QUESTION IN MAKING A SURVEY IN THE ADMIN SIDE OF THINGS BECEAUSE  YOU WANNA SEND OUT EVEN AMOUNT TO ALL MANS: WHAT THIS ENTAILSIS THAT YOU NEED TO DEFINE THE VIEW AND DO A COUNT ON THE NUMBER OF ROWS IT RETURNS AND DEIVED THAT BY THE NUMBER OF ACTIVE USERS. 
+ * MAKE A FILE API ENDPOINT HAT WILL JUST REUTRN A RANDOM ASCITVE FILE AND FLAG IT INACTIVE IN THE TABLE SO THAT THE FRONT END CAN GRAB FILES FOR QQUESTION ANSWERING USING AJAX, ALTHOUG HYOU NEED A FALLBACK MECAHNISM, MAYVBE A STORED PROCEDURE THAT RUNS FROM TIME TO TIME THAT WILL CHECK TO MAKE USRE ANY FILES THAT ARE MADE INACTIVE DO HAVE ENOUGH ANSWERS IN THE RESPONSE TABLE OW MAKE THEM ACTIVE AGAIN
+ * ALSO ONE THING THAT I MIGHT NEED TO DO IS THAT I MIGHT NEED TO ADD AN EXTRA TEXT ANSWER COLUMN TO THE QUESTION OPTIONS TABLE SO THAT I DONT NEED TO GO BACK AND FORTH BETWEE NTHE RESPONSES AND THE OPTIONS TABLE
+ * A COUPLE OF SMALL COINTAINTST KINA THINKGY FOR LATER
+ */
 
 
 

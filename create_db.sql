@@ -34,7 +34,8 @@ CREATE TABLE `Surveys` (
 	`is_published` BOOLEAN NOT NULL,
 	FOREIGN KEY(`study_id`) 
 	    REFERENCES `Studies`(`study_id`),
-	PRIMARY KEY(`survey_id`) 
+	UNIQUE KEY (`study_id`,`title`),
+	PRIMARY KEY(`survey_id`)
 );
 
 CREATE TABLE `Question_Types` (
@@ -104,7 +105,18 @@ CREATE TABLE `Completed_Surveys`(
 	PRIMARY KEY(`user_id`, `survey_id`)
 );
 
-insert into Studies (title, info, is_active)values("tools", "this study is to simulate the tools study were gonna do", 1);
+CREATE TABLE `Files_in_Use`(
+	`file_id` INT NOT NULL,
+	`ques_id` INT NOT NULL,
+	`count` INT NOT NULL,
+	FOREIGN KEY(`ques_id`)
+	    REFERENCES `Questions`(`ques_id`),
+	FOREIGN KEY(`file_id`)
+	    REFERENCES `Files`(`file_id`),
+	PRIMARY KEY(`file_id`, `ques_id`)
+);
+
+insert into Studies (title, info, is_active) values ("tools", "this study is to simulate the tools study were gonna do", 1);
 insert into Surveys (study_id, title, info, expiry_date, is_published) values (1, "survey 1", "this will be the round 1 classification", '2019-08-29', 1);
 
 insert into Question_Types (label, has_text, has_options, has_file) values ("classification", 0, 1, 1);
