@@ -30,20 +30,15 @@
                 // iterate and craete subfeild sets for differnet files ques count number of times
                 <% for (i = 0; i < each_ques.ques_count; i++) { %>
                 <% filenum = i; %>
-                <% file_id = 'Will be gotten by ajax'; %>
                 <fieldset name="<%= qnum %>_<%= filenum %>" id="<%= qnum %>_file_<%= filenum %>" style="display: none">
 
 
                     <h3 class="ques_title"><%= each_ques.title %></h3>
                     <h3 class="ques_info"><%= each_ques.info %></h3>
                     <input type="text" name="<%=qnum%>_<%=filenum%>_qid" value="<%= each_ques.ques_id %>" style="display: none">
-                    <input type="text" name="<%=qnum%>_<%=filenum%>_fid" value="<%= file_id %>" style="display: none">
+                    <input type="text" name="<%=qnum%>_<%=filenum%>_fid" value="file-id-fill" style="display: none" id="<%=qnum%>_<%=filenum%>_fid">
 
-
-                    <a class="file_link" id="<%=qnum%>_file_<%=filenum%>" href="/files/<%= file_id %>">File Link
-                        Here</a><br>
-                    <input type="text" class="file_link" id="<%=qnum%>_file_<%=filenum%>" style="display: none" value="<%= file_id %>">
-
+                    <a class="file_link" id="<%=qnum%>_<%=filenum%>_link" href="file-link-fill%>" target="_blank">File Link Here</a><br>
 
                     <% if (qtypes[each_ques.ques_type_id].has_text) { %>
                     <textarea class="resp_text" name="<%=qnum%>_<%= filenum %>_text"></textarea>
@@ -132,9 +127,17 @@
             ques_file_counter += 1;
             // add the time start to and show the next file feildset
             time_start = `<input type="text" name="${ques_counter}_${ques_file_counter}_time_start" value="${moment().format('YYYY-MM-DD HH:mm:ss')}" style="display: none">`;
-                $(`#${ques_counter}_file_${ques_file_counter}`).prepend(time_start);
+            $(`#${ques_counter}_file_${ques_file_counter}`).prepend(time_start);
             // show the first file feildset for this question that will be asked for multiple files
             $(`#${ques_counter}_file_${ques_file_counter}`).show();
+            // use ajax / jquery to get a file and link it for this question
+            // get the ques_id to send with the request for a file
+            file_obj = $.getJSON(`/getfile/ques/2`, function (data) {
+                // set the link attribute from the file object
+                $(`#${ques_counter}_${ques_file_counter}_link`).attr('href', data.link);
+                // set the value for the file id in the corresponsing input feild
+                $(`#${ques_counter}_${ques_file_counter}_fid`).attr('value', data.file_id);
+            })
         }
 
         $(document).ready(function () {
@@ -150,10 +153,19 @@
                 time_start = `<input type="text" name="${ques_counter}_time_start" value="${moment().format('YYYY-MM-DD HH:mm:ss')}" style="display: none">`;
                 $(`#${ques_counter}`).prepend(time_start);
             } else {
+                // otherwise show the next file
                 time_start = `<input type="text" name="${ques_counter}_${ques_file_counter}_time_start" value="${moment().format('YYYY-MM-DD HH:mm:ss')}" style="display: none">`;
                 $(`#${ques_counter}_file_${ques_file_counter}`).prepend(time_start);
                 // show the first file feildset for this question that will be asked for multiple files
                 $(`#${ques_counter}_file_${ques_file_counter}`).show();
+                // use ajax / jquery to get a file and link it for this question
+                // get the ques_id to send with the request for a file
+                file_obj = $.getJSON(`/getfile/ques/2`, function (data) {
+                    // set the link attribute from the file object
+                    $(`#${ques_counter}_${ques_file_counter}_link`).attr('href', data.link);
+                    // set the value for the file id in the corresponsing input feild
+                    $(`#${ques_counter}_${ques_file_counter}_fid`).attr('value', data.file_id);
+                })
             }
         
 

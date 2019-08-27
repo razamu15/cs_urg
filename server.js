@@ -272,7 +272,7 @@ app.get('/userhome/survey/:survey_id', async (req, res) =>{
     survey = await db_call(survey_query);
     qtypes= await db_call("select * from Question_Types;");
   } catch (err) {
-    console.log(survey_stuff, "failed");
+    console.log(survey_query, "failed");
     console.log("or", qtypes_query, "failed");
   }
   
@@ -340,8 +340,7 @@ app.get('/getfile/ques/:ques_id', async (req, res) =>{
   } catch (err) {
     console.log("error in first query");
     // the file was not marked inactive, something went wrong
-    res.status(501);
-    res.send();
+    res.sendStatus(501);
   }
   // if there are not enough results(1 is always enough but we do more for randomization), then we get a "fresh" file
   if (partial_results.length < 5) {
@@ -351,8 +350,8 @@ app.get('/getfile/ques/:ques_id', async (req, res) =>{
     } catch (err) {
       console.log("error in fresh query");
       // the file was not marked inactive, something went wrong
-      res.status(501);
-      res.send();
+      res.sendStatus(501);
+      return;
     }
     // if there are no fresh files, then we revert back to the partially done files and send one of those
     if ( fresh_results.length != 0 ){
@@ -365,21 +364,20 @@ app.get('/getfile/ques/:ques_id', async (req, res) =>{
       try {
         insert_res = await db_call(ins_query);
         // return with the query data
-        res.json(JSON.stringify(return_row));
+        res.json(return_row);
       } catch (error) {
         console.log("error in partial wuery");
         // the file was not marked inactive, something went wrong
-        res.status(501);
-        res.send();
+        res.sendStatus(501);
       }
     } else {
       // we also wanna check here if the partial query return no files then theres nothing more to give
       if (partial_results.length == 0){
-        res.status(422);
-        res.send();
+        res.sendStatus(422);
+        return;
       }
-        // there are no more frassh files left so we fall back ot the partial ones
-        // pick a random file from the list and return its info
+      // there are no more frassh files left so we fall back ot the partial ones
+      // pick a random file from the list and return its info
       rand_int = Math.floor(Math.random() * (partial_results.length - 1 - 0 + 1) + 0);
       return_row = partial_results[rand_int];
       // update its info and add 1 to its count in the Files_in_Use table
@@ -388,12 +386,11 @@ app.get('/getfile/ques/:ques_id', async (req, res) =>{
       try {
         upd_result = await db_call(upd_query);
         // return with the query data
-        res.json(JSON.stringify(return_row));
+        res.json(return_row);
       } catch (error) {
         console.log("error in updated query");
         // the file was not marked inactive, something went wrong
-        res.status(501);
-        res.send();
+        res.sendStatus(501);
       }
     }
   } else {
@@ -406,12 +403,11 @@ app.get('/getfile/ques/:ques_id', async (req, res) =>{
     try {
       upd_result = await db_call(upd_query);
       // return with the query data
-      res.json(JSON.stringify(return_row));
+      res.json(return_row);
     } catch (error) {
       console.log("error in updated wuery");
       // the file was not marked inactive, something went wrong
-      res.status(501);
-      res.send();
+      res.sendStatus(501);
     }
   }
 })
