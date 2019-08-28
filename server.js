@@ -65,6 +65,10 @@ app.get('/', (req, res) =>{
   res.render('pages/external_view');
 })
 
+app.get('/login', (req, res) => {
+  res.render('pages/login');
+})
+
 app.get('/contact', (req, res) =>{
   res.render('pages/contact_view');
 })

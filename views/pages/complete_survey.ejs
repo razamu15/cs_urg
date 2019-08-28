@@ -24,10 +24,7 @@
 
             <fieldset name="<%= qnum %>" id="<%= qnum %>" style="display: none" data-count="<%= each_ques.ques_count%>">
 
-
-
                 <% if (qtypes[each_ques.ques_type_id].has_file) { %>
-                // iterate and craete subfeild sets for differnet files ques count number of times
                 <% for (i = 0; i < each_ques.ques_count; i++) { %>
                 <% filenum = i; %>
                 <fieldset name="<%= qnum %>_<%= filenum %>" id="<%= qnum %>_file_<%= filenum %>" style="display: none">
@@ -35,8 +32,8 @@
 
                     <h3 class="ques_title"><%= each_ques.title %></h3>
                     <h3 class="ques_info"><%= each_ques.info %></h3>
-                    <input type="text" name="<%=qnum%>_<%=filenum%>_qid" value="<%= each_ques.ques_id %>" style="display: none">
-                    <input type="text" name="<%=qnum%>_<%=filenum%>_fid" value="file-id-fill" style="display: none" id="<%=qnum%>_<%=filenum%>_fid">
+                    <input type="text" id="<%=qnum%>_<%=filenum%>_qid" name="<%=qnum%>_<%=filenum%>_qid" value="<%= each_ques.ques_id %>" style="display: none">
+                    <input type="text" id="<%=qnum%>_<%=filenum%>_fid" name="<%=qnum%>_<%=filenum%>_fid" value="file-id-fill" style="display: none" id="<%=qnum%>_<%=filenum%>_fid">
 
                     <a class="file_link" id="<%=qnum%>_<%=filenum%>_link" href="file-link-fill%>" target="_blank">File Link Here</a><br>
 
@@ -132,7 +129,8 @@
             $(`#${ques_counter}_file_${ques_file_counter}`).show();
             // use ajax / jquery to get a file and link it for this question
             // get the ques_id to send with the request for a file
-            file_obj = $.getJSON(`/getfile/ques/2`, function (data) {
+            qid = $(`#${ques_counter}_${ques_file_counter}_qid`).attr('value');
+            file_obj = $.getJSON(`/getfile/ques/${qid}`, function (data) {
                 // set the link attribute from the file object
                 $(`#${ques_counter}_${ques_file_counter}_link`).attr('href', data.link);
                 // set the value for the file id in the corresponsing input feild
@@ -160,7 +158,8 @@
                 $(`#${ques_counter}_file_${ques_file_counter}`).show();
                 // use ajax / jquery to get a file and link it for this question
                 // get the ques_id to send with the request for a file
-                file_obj = $.getJSON(`/getfile/ques/2`, function (data) {
+                qid = $(`#${ques_counter}_${ques_file_counter}_qid`).attr('value');
+                file_obj = $.getJSON(`/getfile/ques/${qid}`, function (data) {
                     // set the link attribute from the file object
                     $(`#${ques_counter}_${ques_file_counter}_link`).attr('href', data.link);
                     // set the value for the file id in the corresponsing input feild
