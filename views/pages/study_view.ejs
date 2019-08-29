@@ -7,7 +7,7 @@
 </head>
 
 <body>
-    <%- include('../partials/navbar', {action:"logout"}) %>
+    <%- include('../partials/navbar', {action:"logout", home:"adminhome"}) %>
     <div id="content">
         <table>
             <h1>These are the Surveys i have it in this Study</h1>
@@ -17,11 +17,11 @@
                 <th>Survey Link</th>
                 <th>Survey Expiry</th>
             </tr>
-            <% for (const row of query_result) { %>
+            <% for (const row of surveys) { %>
             <tr>
                 <td><%= row.title %></td>
                 <td><%= row.info %></td>
-                <td><a href="/adminhome/study/<%= study_id %>/survey/<%= row.survey_id %>">This is Zoinked right now</a>
+                <td><a href="/adminhome/study/<%= study_id %>/survey/<%= row.survey_id %>">View survey details</a>
                 </td>
                 <td><%= row.expiry_date %></td>
             </tr>

@@ -7,7 +7,7 @@
 </head>
 
 <body>
-    <%- include('../partials/navbar', {action:"logout"}) %>
+    <%- include('../partials/navbar', {action:"logout", home:"adminhome"}) %>
     <div id="content">
         <table>
             <h1>These are the Studies i have it</h1>
@@ -16,7 +16,7 @@
                 <th>Study Info</th>
                 <th>Study Link</th>
             </tr>
-            <% for (const row of query_result) { %>
+            <% for (const row of studies) { %>
             <% if (row.is_active == 1) { %>
             <tr>
                 <td><%= row.title %></td>

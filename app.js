@@ -73,14 +73,22 @@ function db_call(query_str){
 // ###########################################################################
 
 
-app.get('/', (req, res) =>{
-  res.render('pages/external_view');
+app.get('/', (req, res) => {
+  if (req.session.user_id == 'admin') {
+    res.redirect('/adminhome');  
+  } else if (req.session.user_id) {
+    res.redirect('/userhome');  
+  } else {
+    res.render('pages/external_view');
+  }
 })
 
 app.get('/login', (req, res) => {
   // check if this session has a user_id which means it has already been authenticated
-  if (req.session.user_id) {
-    // redirect them to home, cz you cant login twice
+  // and redirect based on which type of user it is
+  if (req.session.user_id == 'admin') {
+    res.redirect('/adminhome');  
+  } else if (req.session.user_id) {
     res.redirect('/userhome');
   } else {
     // show them the login page
@@ -93,6 +101,16 @@ app.get('/login', (req, res) => {
 // it looks for it in redis and if its there gives you back the modified session ow it gives
 // the browser default session which would be an unauthorized user
 app.post('/login', async (req, res) => {
+  // special login case for an admin account
+  admin_login = { email: 'admin', password: 'UTSC_CS_admin321!'};
+  if (req.body.email == admin_login.email && req.body.password == admin_login.password) {
+    // add their info to session which will automatically be stored in redis
+    req.session['user_id'] = admin_login.email;
+    req.session['email'] = admin_login.email;
+    res.redirect('/adminhome');
+    return;
+  }
+
   // first we run the query on the database to get the relevant information for this user
   user_query = `select * from Users where email = "${req.body.email}"`;
   user_result = await db_call(user_query);
@@ -126,11 +144,41 @@ app.get('/logout', (req, res) =>{
   }
 })
 
-app.get('/contact', (req, res) =>{
-  if (req.session.user_id) {
-    res.render('pages/contact_view', {action: "logout"});
+app.get('/register', (req, res) => {
+  // check if this session has a user_id which means it has already been authenticated
+  // and redirect based on which type of user it is
+  if (req.session.user_id == 'admin') {
+    res.redirect('/adminhome');  
+  } else if (req.session.user_id) {
+    res.redirect('/userhome');
   } else {
-    res.render('pages/contact_view', {action: "login"});
+    // show them the login page
+    res.render('pages/register', {message: "Please enter an email and password to register"});
+  }
+})
+
+app.post('/register', async (req, res) => {
+  // define the query and fill it with the information from the post request
+  insert_query = `insert into Users (email, password, is_active, gender) values ("${req.body.email}", "${req.body.password}", 1, "${req.body.gender}");`;
+  // we run the query on the databse but if there is a unique email violation then the function will throw an error
+  try{
+    result = await db_call(insert_query);
+  } catch (err) {
+    console.log(err);
+    res.render('pages/register', {message: "Unable to create user, email already in use"});
+    return;
+  }
+  // if the query is ok then the user was creted and we redirect hem to the login page
+  res.redirect('/login');
+})
+
+app.get('/contact', (req, res) =>{
+  if (req.session.user_id == 'admin') {
+    res.render('pages/contact_view', {action: "logout", home:"adminhome"}); 
+  } else if (req.session.user_id) {
+    res.render('pages/contact_view', {action: "logout", home:"userhome"});
+  } else {
+    res.render('pages/contact_view', {action: "login", home:""});
   }
 })
 
@@ -138,6 +186,9 @@ app.get('/userhome', async (req, res) => {
   // this page is not accessible if not signed in
   if (!req.session.user_id) {
     res.redirect('/login');
+    return;
+  } else if (req.session.user_id == "admin") {
+    res.redirect('/');
     return;
   } else {
     user_id = req.session.user_id;
@@ -154,6 +205,16 @@ app.get('/userhome', async (req, res) => {
 })
 
 app.get('/userhome/survey/:survey_id', async (req, res) =>{
+  // this page is not accessible if not signed in
+  if (!req.session.user_id) {
+    res.redirect('/login');
+    return;
+  } else if (req.session.user_id == "admin") {
+    res.redirect('/');
+    return;
+  } else {
+    user_id = req.session.user_id;
+  }
   // natural join the survey with the questions with the question options then order by ques_id then op_id
   questions_query = ` select all_ques.ques_id, ques_type_id, ques_order_num, ques_count, title, info, op_id, label, text_associated from (select Questions.survey_id, ques_id, ques_type_id, ques_count, ques_order_num, Questions.title, Questions.info from Surveys inner join Questions on Surveys.survey_id = Questions.survey_id) as all_ques left join Question_Options on Question_Options.ques_id = all_ques.ques_id where survey_id = ${req.params.survey_id} order by all_ques.ques_order_num, op_id;`;
   survey_query = `select * from Surveys where survey_id = ${req.params.survey_id}`
@@ -311,28 +372,79 @@ app.get('/getfile/ques/:ques_id', async (req, res) =>{
   }
 })
 
-app.listen(3000, () => {
-  console.log(`Server running on port 3000`);
-});
-
 app.get('/adminhome', async (req, res) =>{
-  // this page is not accessible if not signed in
-  if (!req.session.user_id) {
-    res.redirect('/login');
+  // this page is not accessible if not signed in as admin
+  if (req.session.user_id != "admin") {
+    res.redirect('/');
     return;
   }
   // we shall wait untill we ge the result from the query
   try{
     query_result = await db_call("select * from Studies;");
   } catch (err){
-    console.log("doesnt matter query works" + err);
+    console.log("query to get all studies failed", err);
     res.send("something went wrong");
   }
   // here we will list all the studies that are active and use the query to render in the html properly
-  res.render("pages/admin_home", { query_result:query_result });
+  res.render("pages/admin_home", { studies:query_result });
+})
+
+app.get('/adminhome/study/:study_id', async (req, res) =>{
+  // this page is not accessible if not signed in as admin
+  if (req.session.user_id != "admin") {
+    res.redirect('/');
+    return;
+  }
+  // use the url parameter to get the all the surveys for the needed study
+  try{
+    query_result = await db_call(`select * from Surveys where study_id = ${req.params.study_id};`);
+  } catch (err){
+    console.log("query to get all surveys for a study failed", err);
+    res.send("something went wrong");
+  }
+  res.render("pages/study_view", {study_id : req.params.study_id, surveys: query_result});
+})
+
+app.get('/adminhome/study/:study_id/survey/:survey_id', async (req, res) =>{
+  // this page is not accessible if not signed in as admin
+  if (req.session.user_id != "admin") {
+    res.redirect('/');
+    return;
+  }
+  // run the db query and get all the data we need for this survey
+  try{
+    query_result = await db_call(`select * from Surveys where survey_id = ${req.params.survey_id};`);
+  } catch (err){
+    console.log("query to get details for a survey failed" + err);
+    res.send("something went wrong");
+  }
+  res.render("pages/survey_view", {survey_info : query_result[0], study_id: req.params.study_id, survey_id:req.params.survey_id});
+})
+
+app.post('/adminhome/study/:study_id/survey/:survey_id', async (req, res) =>{
+  // i need to check if the 2 items from the request body are empty or not and build the query accordingly
+  pub_update = (req.body.is_published != "");
+  exp_update = (req.body.expiry_date != "");
+  if (pub_update && exp_update) {
+    update_query = `update Surveys set is_published = "${req.body.is_published}", expiry_date = "${req.body.expiry_date}" where survey_id = ${req.params.survey_id}`;
+  } else {
+    update_query = `update Surveys set ${ pub_update ? "is_published = '" + req.body.is_published + "'" : "expiry_date = '" + req.body.expiry_date + "'"} where survey_id = ${req.params.survey_id};`;
+  }
+  // execute the db query to update the db
+  try{
+    result = await db_call(update_query);
+  } catch (err) {
+    console.log(update_query, "failed");
+  }
+  res.redirect(`/adminhome/study/${req.params.study_id}`);
 })
 
 
+
+
+app.listen(3000, () => {
+  console.log(`Server running on port 3000`);
+})
 /**
  * THERE ARE A COUPLE THINGS THAT  MIGHT NEEED TO MODIFFY AOBUT THE DB
  * 1. RIGHT NOW IF THERE IS A TEXT OPTION, THEN ACTUAL TEXT RESPONSE WIL GO INTO THE RESPONSE OPEN_RESP COLUMN
@@ -340,3 +452,15 @@ app.get('/adminhome', async (req, res) =>{
  * 2. AT THIS POINT THERE IS NO OTHER WAY TO UNIQELY IDETIFY A SURVEY OTHER THAN ITS SURVEY_ID AND THATS BAD BECAUSE AS SOON AS I CREATE THE SURVEY I HAVE NO WAY OF KNOWING WHAT ITS ID FOR FOREIGN KEY CONTRAINTS
  *  I COULD MAKE STUDY ID AND THE TITLE UNIQUE TOGETHER, ORRR I EXPLICITLY CREATE A ID EVERY TIME I INSERT INTO THE DB(SEEMS BAD)
  */
+
+ /*
+  * ADD DESTRIBUTE OPTION FOR DEFININF FILE COUNT
+  * WHEN THE COMPLETE SURVEY FONR END JS MAKES A FILE REQUEST AND RECEIVES A 422 IT SHOULD MOVE ON TO THE NECT WUESTION AND NTO KEEP MAKING REQUESTS FOR MORE FILES
+  * PUT COMPLETE SURVEY FORM DATA INTO THE DATABSE
+  * IF A USER PRESSES SUBMIT IN THE MIDDLE OF THE SURVEY THEN WHAT HAPPENS?
+  * MAKE DELETE SURVEY ROUTE
+  * UPDATE UI
+  * test mutiple users with with different users havning completed different surveys
+  * make a complete and proper sql script to create the database
+  * docker iamge
+  * */

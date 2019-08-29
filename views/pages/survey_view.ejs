@@ -4,31 +4,56 @@
     <link href="https://fonts.googleapis.com/css?family=Ubuntu" rel="stylesheet">
     <link rel="stylesheet" href="/css/standard.css">
     <title>this is da page</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 </head>
 
 <body>
-    <%- include('../partials/navbar', {action:"logout"}) %>
+    <%- include('../partials/navbar', {action:"logout", home:"adminhome"}) %>
     <div id="content">
         <table>
             <h1>This Survey is configured as follows you can change it if you want</h1>
             <tr>
                 <th>Survey publication status</th>
                 <th>Survey expiry_date</th>
-                <th>Delete survey</th>
             </tr>
             <tr>
                 <td><%= survey_info.is_published %></td>
                 <td><%= survey_info.expiry_date %></td>
-                <td><button>Delete this survey</button></td>
             </tr>
             <tr>
-                <td><input type="text"></td>
-                <td><input type="text"></td>
-                <td></td>
+                <form method="POST" action="/adminhome/study/<%= study_id %>/survey/<%= survey_id %>" id="update_survey">
+                    <td>update the status to publish or repeal a survey<input type="text" name="is_published"
+                            placeholder="enter a new status"></td>
+                    <td>Enter a new zxpiry date<input type="text" name="expiry_date" placeholder="YYYY-MM-DD">
+                    </td>
+                </form>
+                
             </tr>
-
         </table>
+        <input type="submit" value="Update Survey" form="update_survey">
+        <form method="POST" action="/delete/survey/<%= survey_id %>">
+            <button type="submit" value="Delete">Delete this Survey</button>
+        </form>
     </div>
+    <script>
+        $(document).ready(function() {
+
+            $("#update_survey").submit( function(event) {
+                // if none of the feilds have an updated value then we dont make a post request
+                form_data = $(this).serializeArray();
+                stop_event = true;
+                for (const peice of form_data) {
+                    if (peice.value != "") {
+                        stop_event = stop_event && false;
+                    }
+                }
+                if (stop_event) {
+                    event.preventDefault();
+                }
+            })
+
+        })
+    </script>
 </body>
 
 </html>
