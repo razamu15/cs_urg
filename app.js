@@ -4,6 +4,8 @@ const bodyParser = require('body-parser');
 const redis = require('redis');
 const session = require('express-session');
 const redisStore = require('connect-redis')(session);
+const PORT = 3000;
+
 
 // define databse connection object and connet to the mysql database
 var dbconn = mysql.createConnection({
@@ -188,7 +190,7 @@ app.get('/userhome', async (req, res) => {
     res.redirect('/login');
     return;
   } else if (req.session.user_id == "admin") {
-    res.redirect('/');
+    res.redirect('/adminhome');
     return;
   } else {
     user_id = req.session.user_id;
@@ -434,15 +436,73 @@ app.post('/adminhome/study/:study_id/survey/:survey_id', async (req, res) =>{
   try{
     result = await db_call(update_query);
   } catch (err) {
-    console.log(update_query, "failed");
+    console.error(update_query, "failed");
   }
-  res.redirect(`/adminhome/study/${req.params.study_id}`);
+  res.redirect(`/adminhome/study/${req.params.study_id}/survey/${req.params.survey_id}`);
+})
+
+app.post('/reset/survey/:survey_id', async (req, res) => {
+  // this action is not accessible if not signed in as admin
+  if (req.session.user_id != "admin") {
+    res.sendStatus(401);
+    return;
+  }
+  // now i delete all the answers that belong to any question in this survey
+  answers_rem = `delete from Responses where ques_id in (select ques_id from Questions where survey_id = ${req.params.survey_id});`;
+  // also delete records of any files that were used by questions in this survey
+  files_rem = `delete from Files_in_Use where ques_id in (select ques_id from Questions where survey_id = ${req.params.survey_id});`;
+  // also delete any records for people that have already completed this survey
+  completes_rem = `delete from Completed_Surveys where survey_id = ${req.params.survey_id};`;
+  try {
+    // if the queries succeeded, then we send a success status code ow we send a fail status code
+    result = await Promise.all([db_call(answers_rem), db_call(files_rem), db_call(completes_rem)]);
+    res.sendStatus(200);
+  } catch (err) {
+    console.error("survey reset failed");
+    res.sendStatus(501);
+  }
 })
 
 
+app.post('/delete/survey/:survey_id', async (req, res) => {
+  // this page is not accessible if not signed in as admin
+  if (req.session.user_id != "admin") {
+    res.sendStatus(401);
+    return;
+  }
+  // first i remove all the options that are about any questions related to the survey
+  option_rem = `delete from Question_Options where ques_id in (select ques_id from Questions where survey_id = ${req.params.survey_id});`;
+  // next remove all the questions themselves
+  ques_rem = `delete from Questions where survey_id = ${req.params.survey_id};`;
+  // now finally remove the survey itself
+  surv_rem = `delete from Surveys where survey_id = ${req.params.survey_id};`;
+  let fail_counter = 0;
+  try {
+    result = await db_call(option_rem);
+    fail_counter += 1;
+    result = await db_call(ques_rem);
+    fail_counter += 1;
+    result = await db_call(surv_rem);
+    fail_counter += 1;
+    res.sendStatus(200);
+  } catch (err) {
+    // we print out which db call failed
+    console.error("Failed to remove the survey properly");
+    if ( fail_counter == 0 ) {
+      console.error(option_rem, "failed");
+    } else if (fail_counter == 1) {
+      console.error(ques_rem, "failed");
+    } else {
+      console.error(surv_rem, "failed");
+    }
+    res.sendStatus(501);
+  }
+});
 
 
-app.listen(3000, () => {
+
+
+app.listen(PORT, () => {
   console.log(`Server running on port 3000`);
 })
 /**
@@ -455,10 +515,8 @@ app.listen(3000, () => {
 
  /*
   * ADD DESTRIBUTE OPTION FOR DEFININF FILE COUNT
-  * WHEN THE COMPLETE SURVEY FONR END JS MAKES A FILE REQUEST AND RECEIVES A 422 IT SHOULD MOVE ON TO THE NECT WUESTION AND NTO KEEP MAKING REQUESTS FOR MORE FILES
   * PUT COMPLETE SURVEY FORM DATA INTO THE DATABSE
-  * IF A USER PRESSES SUBMIT IN THE MIDDLE OF THE SURVEY THEN WHAT HAPPENS?
-  * MAKE DELETE SURVEY ROUTE
+  * the complete survey page doesnt add time end stamp for last file run of a question
   * UPDATE UI
   * test mutiple users with with different users havning completed different surveys
   * make a complete and proper sql script to create the database

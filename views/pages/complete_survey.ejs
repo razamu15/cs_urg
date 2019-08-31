@@ -32,10 +32,13 @@
 
                     <h3 class="ques_title"><%= each_ques.title %></h3>
                     <h3 class="ques_info"><%= each_ques.info %></h3>
-                    <input type="text" id="<%=qnum%>_<%=filenum%>_qid" name="<%=qnum%>_<%=filenum%>_qid" value="<%= each_ques.ques_id %>" style="display: none">
-                    <input type="text" id="<%=qnum%>_<%=filenum%>_fid" name="<%=qnum%>_<%=filenum%>_fid" value="file-id-fill" style="display: none" id="<%=qnum%>_<%=filenum%>_fid">
+                    <input type="text" id="<%=qnum%>_<%=filenum%>_qid" name="<%=qnum%>_<%=filenum%>_qid"
+                        value="<%= each_ques.ques_id %>" style="display: none">
+                    <input type="text" id="<%=qnum%>_<%=filenum%>_fid" name="<%=qnum%>_<%=filenum%>_fid"
+                        value="file-id-fill" style="display: none" id="<%=qnum%>_<%=filenum%>_fid">
 
-                    <a class="file_link" id="<%=qnum%>_<%=filenum%>_link" href="file-link-fill%>" target="_blank">File Link Here</a><br>
+                    <a class="file_link" id="<%=qnum%>_<%=filenum%>_link" href="file-link-fill%>" target="_blank">File
+                        Link Here</a><br>
 
                     <% if (qtypes[each_ques.ques_type_id].has_text) { %>
                     <textarea class="resp_text" name="<%=qnum%>_<%= filenum %>_text"></textarea>
@@ -45,8 +48,10 @@
                         <% for (each_opt of each_ques.options) { %>
                         <% opnum = each_opt.id %>
                         <% if (each_opt.text_associated == 1) { %>
-                        <input type="radio" name="<%=qnum%>_<%= filenum %>_opt" id="<%=qnum%>_<%= filenum %>_opt" value="<%= opnum %>" class="text"> <%= each_opt.label %>:
-                        <input type="text" name="<%=qnum%>_<%= filenum %>_opt_text" id="<%=qnum%>_<%= filenum %>_opt_text" disabled>
+                        <input type="radio" name="<%=qnum%>_<%= filenum %>_opt" id="<%=qnum%>_<%= filenum %>_opt"
+                            value="<%= opnum %>" class="text"> <%= each_opt.label %>:
+                        <input type="text" name="<%=qnum%>_<%= filenum %>_opt_text"
+                            id="<%=qnum%>_<%= filenum %>_opt_text" disabled>
                         <% } else { %>
                         <input type="radio" name="<%=qnum%>_<%= filenum %>_opt" value="<%= opnum %>" class="no_text">
                         <%= each_opt.label %>
@@ -70,7 +75,8 @@
                 <% for (each_opt of each_ques.options) { %>
                 <% opnum = each_opt.id %>
                 <% if (each_opt.text_associated == 1) { %>
-                <input type="radio" id="<%=qnum%>_opt" name="<%=qnum%>_opt" value="<%= opnum %>" class="text"> <%= each_opt.label %>:
+                <input type="radio" id="<%=qnum%>_opt" name="<%=qnum%>_opt" value="<%= opnum %>" class="text">
+                <%= each_opt.label %>:
                 <input type="text" name="<%=qnum%>_opt_text" id="<%=qnum%>_opt_text" disabled>
                 <% } else { %>
                 <input type="radio" name="<%=qnum%>_opt" value="<%= opnum %>" class="no_text"> <%= each_opt.label %>
@@ -85,7 +91,9 @@
             <input type="submit" value="Submit">
             <button type="button" id="next_ques">Next Question</button>
         </form>
-        <div id="done" style="display: none"><p>no more questions left, please click the submit button to confirm your responses</p></div>
+        <div id="done" style="display: none">
+            <p>no more questions left, please click the submit button to confirm your responses</p>
+        </div>
 
     </div>
     <script>
@@ -108,7 +116,7 @@
             // add start time to next question and show it
             $(`#${ques_counter}`).show();
             time_start = `<input type="text" name="${ques_counter}_time_start" value="${moment().format('YYYY-MM-DD HH:mm:ss')}" style="display: none">`;
-            $(`#${ques_counter}`).prepend(time_start);    
+            $(`#${ques_counter}`).prepend(time_start);
             // check if this is the final question cz if it is tell the user survey is done
             if (ques_counter == surv_size) {
                 $(`#done`).show();
@@ -135,7 +143,16 @@
                 $(`#${ques_counter}_${ques_file_counter}_link`).attr('href', data.link);
                 // set the value for the file id in the corresponsing input feild
                 $(`#${ques_counter}_${ques_file_counter}_fid`).attr('value', data.file_id);
-            })
+            }).fail(function (d, textStatus, error) {
+                // if the getJSON request failed and it was because of status 422 which is sent by webserver when its out of files
+                // then we dont make subsequent requests file requests and move onto the next question
+                if (d.status == 422) {
+                    console.log("Ran out of files to serve, moving to next question");
+                    show_next_ques();
+                } else {
+                    console.error("Something went wrong in requesting file");
+                }
+            });
         }
 
         $(document).ready(function () {
@@ -164,27 +181,38 @@
                     $(`#${ques_counter}_${ques_file_counter}_link`).attr('href', data.link);
                     // set the value for the file id in the corresponsing input feild
                     $(`#${ques_counter}_${ques_file_counter}_fid`).attr('value', data.file_id);
-                })
+                }).fail(function (d, textStatus, error) {
+                // if the getJSON request failed and it was because of status 422 which is sent by webserver when its out of files
+                // then we dont make subsequent requests file requests and move onto the next question
+                if (d.status == 422) {
+                    console.log("Ran out of files to serve, moving to next question");
+                    show_next_ques();
+                } else {
+                    console.error("Something went wrong in requesting file");
+                }
+            });
             }
-        
+
 
             $("#next_ques").click(function () {
                 // if the ques_file_counter is 1 less than ques file total, then we show the next question ow show the next subfeild for the question
-                if (ques_file_counter == (ques_file_total - 1)) {    
+                if (ques_file_counter == (ques_file_total - 1)) {
                     show_next_ques();
                 } else {
                     show_next_file();
-                } 
+                }
             });
 
             $("#main_resp").submit(function (event) {
-                // i dont need this because people will always keep pressing next untill we tell them end of survey
-                time_end = `<input type="text" name="${ques_counter}_time_end" value="${moment().format('YYYY-MM-DD HH:mm:ss')}" style="display: none">`;
-                $(`#${ques_counter}`).append(time_end);
+                // if the user presses the submit button before the end of the survey we send an alert to tell them they are not done
+                if (ques_counter != surv_size) {
+                    alert("There are still unanswered questions");
+                    event.preventDefault();
+                }
             });
 
             // this handler will enable the text entry feild for a text option, which by default will be disabled
-            $(document).on('click', ".text", function(){
+            $(document).on('click', ".text", function () {
                 text_input_id = '#' + $(this).attr('id') + '_text';
                 $(text_input_id).prop('disabled', false);
             })
