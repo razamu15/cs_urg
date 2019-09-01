@@ -3,32 +3,29 @@
 <head>
     <link href="https://fonts.googleapis.com/css?family=Ubuntu" rel="stylesheet">
     <link rel="stylesheet" href="/css/standard.css">
+    <link rel="stylesheet" href="/css/widgets.css">
     <title>this is da page</title>
 </head>
 
 <body>
     <%- include('../partials/navbar', {action:"logout", home:"adminhome"}) %>
     <div id="content">
-        <table>
-            <h1>These are the Surveys i have it in this Study</h1>
-            <tr>
-                <th>Survey Title</th>
-                <th>Survey Info</th>
-                <th>Survey Link</th>
-                <th>Survey Expiry</th>
-            </tr>
-            <% for (const row of surveys) { %>
-            <tr>
-                <td><%= row.title %></td>
-                <td><%= row.info %></td>
-                <td><a href="/adminhome/study/<%= study_id %>/survey/<%= row.survey_id %>">View survey details</a>
-                </td>
-                <td><%= row.expiry_date %></td>
-            </tr>
-            <% } %>
-        </table>
+        <h2 class="sub-header">Surveys in this Study</h2>
+        <% for (const row of surveys) { %>
+        <div class="widget">
+            <a href="/adminhome/study/<%= study_id %>/survey/<%= row.survey_id %>" class="widget_link">
+                <div class="widget_cont">
+                    <div class="widget_top">
+                        <div class="title"><span class="label"></span><%= row.title %></div>
+                        <div class="expiry"><span class="label">Expiry date:&nbsp;</span><%= row.expiry_date %></div>
+                    </div>
+                    <div class="info"><span class="label">Description:&nbsp;</span><%= row.info %></div>
+                </div>
+            </a>
+        </div>
+        <% } %>
 
-        <a href="/adminhome/study/<%= study_id %>/create_survey">Create new survey in this study</a>
+        <a href="/adminhome/study/<%= study_id %>/create_survey"><button class="action_btn">Create New Survey</button></a>
     </div>
 
 </body>

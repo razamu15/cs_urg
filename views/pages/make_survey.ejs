@@ -3,32 +3,69 @@
 <head>
     <link href="https://fonts.googleapis.com/css?family=Ubuntu" rel="stylesheet">
     <link rel="stylesheet" href="/css/standard.css">
+    <link rel="stylesheet" href="/css/widgets.css">
     <title>this is da page</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <style>
+        #survey_data{
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 0 10 10 10px;
+            margin-bottom: 10px;
+        }
+
+        .each_ques{
+            border: 1.5px solid black;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            margin: 0 8 10 8px;
+            border-radius: 5px;
+            transition: box-shadow 0.35s ease;
+            text-decoration: none;
+        }
+
+        .ques_side{
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .action_btn {
+            font-weight: 500;
+            margin: 7px;
+            font-size: 1.2vmax
+        }
+    </style>
 </head>
 
 <body>
-    <h1>Create Survey Page</h1>
+        <%- include('../partials/navbar', {action:"logout", home:"adminhome"}) %>
+        <div id="content">
+    
+            
+
     <div id="form_wrap">
 
         <form action="/adminhome/study/<%= study_id %>/create_survey" method="POST"
             enctype='application/x-www-form-urlencoded'>
+            <h2 class="sub-header">Survey Info</h2>
             <fieldset name="survey_data" id="survey_data">
                 <legend>Enter the Survey related info Here</legend>
-
-                <label for="surv_title">Enter the Survey Title:</label>
-                <input type="text" name="surv_title" id="surv_title">
+                <span class="label">Survey Title:&nbsp;<input type="text" name="surv_title" id="surv_title"></span>
                 <br>
-                <label for="surv_info">Enter Survey Info if there is any: </label>
-                <textarea name="surv_info" id="surv_info"></textarea>
+                <div style="display: flex; flex-direction: row; align-items:center">
+                <span class="label">Survey Info:&nbsp;</span><textarea name="surv_info" id="surv_info"></textarea>
+            </div>
             </fieldset>
+            <h2 class="sub-header">Create Questions</h2>
             <br>
-            <fieldset name="questions" id="questions">
-                <legend>Enter the Questions Related info here</legend>
+            <div name="questions" id="questions">
+                
 
-            </fieldset>
-            <input type="submit" value="Submit">
-            <button type="button" id="reset_survey">Reset</button>
+            </div>
+            <input type="submit" value="Submit" class="action_btn">
+            <button type="button" id="reset_survey" class="action_btn">Reset</button>
         </form>
 
         <!-- this form is separate from the actualy survey cration form and is only used for creating a ques,
@@ -42,8 +79,9 @@
                 <% } %>
             </select>
             <br><br>
-            <input type="submit" value="Create New Ques">
+            <input type="submit" value="Create New Ques" class="action_btn">
         </form>
+    </div>
     </div>
 
 
@@ -87,14 +125,18 @@
                     };
                 };
                 // fill in the question creation template with the current values of these variables
-                ques_template = `<fieldset name="${qnum}">
+                ques_template = `<fieldset name="${qnum}" class="each_ques">
+                        <legend>Question ${qnum}</legend>
+                    <div class="ques_side">
                         <input type="text" name="${qnum + '_type_id'}" id="${qnum + '_type_id'}" value="${form_data[0].value}">
-                        Question text: <input type="text" name="${qnum + '_title'}" id="${qnum + '_title'}"><br>
-                        Question info: <input type="text" name="${qnum + '_info'}" id="${qnum + '_info'}"><br>
+                        Question text: <input type="text" name="${qnum + '_title'}" id="${qnum + '_title'}">
+                        Question info: <textarea name="${qnum + '_info'}" id="${qnum + '_info'}"></textarea>
                         <div id="${qnum + '_file'}">
-                            <input type="text" name="${qnum + '_count'}" id="${qnum + '_count'}" placeholder="Enter Question count">
+                            Question count:&nbsp;<input type="text" name="${qnum + '_count'}" id="${qnum + '_count'}" placeholder="# or distribute"><br>
                             <a href="#">File Link Here</a><br>
                         </div>
+                        </div>
+                        <div class="ans_side">
                         <span id="${qnum + '_text'}">open ended response: <textarea disabled></textarea></span>
                         <ul id="${qnum + '_opts'}">
                             <button type="button" id="create_opts" >Create New Option</button>
@@ -103,6 +145,7 @@
                         <!-- this extra save button will stop the question from being editable anymore
                             and it will also make the create option button and itself dissappear for this question-->
                             <button type="button" id="save_ques" >Save Question</button>
+                        </div>
                     </fieldset>`;
                 // append the question creation template to the questions feild inside the form
                 $("#questions").append(ques_template);

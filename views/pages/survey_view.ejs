@@ -3,6 +3,7 @@
 <head>
     <link href="https://fonts.googleapis.com/css?family=Ubuntu" rel="stylesheet">
     <link rel="stylesheet" href="/css/standard.css">
+    <link rel="stylesheet" href="/css/widgets.css">
     <title>this is da page</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 </head>
@@ -10,38 +11,40 @@
 <body>
     <%- include('../partials/navbar', {action:"logout", home:"adminhome"}) %>
     <div id="content">
-        <table>
-            <h1>This Survey is configured as follows you can change it if you want</h1>
-            <tr>
-                <th>Survey publication status</th>
-                <th>Survey expiry_date</th>
-            </tr>
-            <tr>
-                <td><%= survey_info.is_published %></td>
-                <td><%= survey_info.expiry_date %></td>
-            </tr>
-            <tr>
-                <form method="POST" action="/adminhome/study/<%= study_id %>/survey/<%= survey_id %>"
-                    id="update_survey">
-                    <td>update the status to publish or repeal a survey<input type="text" name="is_published"
-                            placeholder="enter a new status"></td>
-                    <td>Enter a new zxpiry date<input type="text" name="expiry_date" placeholder="YYYY-MM-DD">
-                    </td>
+
+        <h2 class="sub-header">Survey Details</h2>
+        <div class="widget">
+
+            <div class="widget_cont">
+                <div class="title"><span class="label"></span><%= survey_info.title %>
+                </div>
+                <div class="widget_top" style="justify-content: space-around; margin-top: 10px;">
+                    <div class="info"><span class="label">Publication Status:&nbsp;</span><%= survey_info.is_published %></div>
+                    <div class="expiry"><span class="label">Expiry date:&nbsp;</span><%= survey_info.expiry_date %></div>
+                </div>
+                <form method="POST" action="/adminhome/study/<%= study_id %>/survey/<%= survey_id %>" id="update_survey">
+                <div class="widget_top" style="justify-content: space-around; margin-top: 10px;">
+                    <div class="info"><span class="label">Update status to publish or repeal a survey:&nbsp;</span><br><input type="text" name="is_published"
+                        placeholder="enter a new status"></div>
+                    <div class="expiry"><span class="label">Enter a new expiry date:&nbsp;</span><input type="text" name="expiry_date" placeholder="YYYY-MM-DD"></div>
+                </div>
                 </form>
 
-            </tr>
-        </table>
-        <input type="submit" value="Update Survey" form="update_survey">
+            </div>
+        </div>
+        <div id="button_wrap" style="display: flex; justify-content: space-around;">
+        <input type="submit" value="Update Survey" form="update_survey" class="action_btn">
 
         <!-- this is because you can only delete a survey if it not published  -->
         <% if (survey_info.is_published === 0 ) { %>
         <form id="delete_surv" method="GET" action="/adminhome/study/<%= study_id %>/">
-            <button type="submit" value="Delete">Delete this Survey</button>
+            <button class="action_btn" type="submit" value="Delete">Delete this Survey</button>
         </form>
         <form id="reset_surv">
-            <button type="submit" value="Reset">Reset this Survey</button>
+            <button class="action_btn" type="submit" value="Reset">Reset this Survey</button>
         </form>
         <% } %>
+    </div>
     </div>
     <script>
         $(document).ready(function () {
