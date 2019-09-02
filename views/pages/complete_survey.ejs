@@ -6,32 +6,38 @@
     <title>this is da page</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/moment@2.24.0/moment.min.js"></script>
+    <style>
+        #main_resp{
+            margin: 12px;
+            
+        }
+    </style>
 </head>
 
 <body>
     <%- include('../partials/navbar', {action:"logout", home:"userhome"}) %>
     <div id="content">
+            
+            
 
-
-        <h1 id="survey_title"><%= survey.title %></h1>
+            <h2 class="sub-header"><%= survey.title %></h2>
         <p id="survey_info"><%= survey.info %></p>
 
-        <h1 id="question_header">Answer These Questions below</h1>
         <form action="/userhome/survey/<%= survey.survey_id %>" method="POST"
             enctype='application/x-www-form-urlencoded' id="main_resp">
             <% for ( each_ques of questions) { %>
             <% qnum = each_ques.ques_order_num %>
 
-            <fieldset name="<%= qnum %>" id="<%= qnum %>" style="display: none" data-count="<%= each_ques.ques_count%>">
+            <div name="<%= qnum %>" id="<%= qnum %>" style="display: none" data-count="<%= each_ques.ques_count%>">
 
                 <% if (qtypes[each_ques.ques_type_id].has_file) { %>
                 <% for (i = 0; i < each_ques.ques_count; i++) { %>
                 <% filenum = i; %>
-                <fieldset name="<%= qnum %>_<%= filenum %>" id="<%= qnum %>_file_<%= filenum %>" style="display: none">
+                <div name="<%= qnum %>_<%= filenum %>" id="<%= qnum %>_file_<%= filenum %>" style="display: none">
 
 
                     <h3 class="ques_title"><%= each_ques.title %></h3>
-                    <h3 class="ques_info"><%= each_ques.info %></h3>
+                    <h5 class="ques_info"><%= each_ques.info %></h5>
                     <input type="text" id="<%=qnum%>_<%=filenum%>_qid" name="<%=qnum%>_<%=filenum%>_qid"
                         value="<%= each_ques.ques_id %>" style="display: none">
                     <input type="text" id="<%=qnum%>_<%=filenum%>_fid" name="<%=qnum%>_<%=filenum%>_fid"
@@ -59,9 +65,9 @@
                         <% } %>
                     </div>
                     <% } %>
-                </fieldset>
+                </div>
                 <% } %>
-            </fieldset>
+            </div>
             <% } else { %>
             <h3 class="ques_title"><%= each_ques.title %></h3>
             <h3 class="ques_info"><%= each_ques.info %></h3>
@@ -84,7 +90,7 @@
                 <% } %>
             </div>
             <% } %>
-            </fieldset>
+        </div>
             <% } %>
 
             <% } %>

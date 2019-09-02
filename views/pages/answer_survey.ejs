@@ -1,0 +1,243 @@
+<html>
+
+<head>
+    <link href="https://fonts.googleapis.com/css?family=Ubuntu" rel="stylesheet">
+    <link rel="stylesheet" href="/css/standard.css">
+    <link rel="stylesheet" href="/css/widgets.css">
+    <title>this is da page</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.24.0/moment.min.js"></script>
+    <style>
+        
+        #main_resp{
+            margin-bottom: 10px;
+        }
+
+        #ques{
+            display: flex;
+            flex-direction: column;
+        }
+
+        #ques_stuff{
+            margin-bottom: 10px;
+        }
+
+        #opts_cont{
+            display: flex;
+            flex-direction: column;
+            margin-top: 10px;
+        }
+
+        .opt_child{
+            margin: 5px;
+        }
+
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar', {action:"logout", home:"userhome"}) %>
+    <div id="content">
+        <form action="/userhome" method="GET" id="main_resp">
+            
+        </form>
+        <button type="submit" id="next_ques" form="main_resp" class="action_btn">Next Question</button>
+        
+        
+        <form action="/userhome" method="GET" id="done" style="display: none">
+            <p>no more questions left</p>
+            <button type="submit" id="finish" class="action_btn">Finish</button>
+        </form>
+    </div>
+
+    <script>
+        const survey = <%- JSON.stringify(survey) %>;
+        const questions = <%- JSON.stringify(ques_array) %>;
+        const qtypes = <%- JSON.stringify(qtypes) %>;
+        var ques_index = 0;
+        var file_index = 0;
+        var ques_time_start;
+
+        function finish_prev_ques() {
+            let current_ques = questions[ques_index];
+            answer_obj = {};
+            // get the form data using serialize
+            user_answer = $("#main_resp").serializeArray();
+            for ( item of user_answer){
+                answer_obj[item.name] = item.value;
+            }
+            
+            // we check to make sure the user did actaully provide an answer in the form data
+            // and if they didnt we return false to the handler which will alert the user
+            if (answer_obj.hasOwnProperty('text') && answer_obj.text == "") {
+                return false;
+            } else if (answer_obj.hasOwnProperty('opt_text') && answer_obj.opt_text == "") {
+                return false;
+            } else if(!answer_obj.hasOwnProperty('opt') && !answer_obj.hasOwnProperty('text')) {
+                return false;
+            }
+
+            // add the start and end time for this ques to the answer object
+            answer_obj['start_time'] = ques_time_start;
+            answer_obj['end_time'] = moment().format('YYYY-MM-DD HH:mm:ss');
+            // add extra information such as ques id
+            answer_obj['ques_id'] = current_ques.ques_id;
+            // // add a file id if this ques has a file
+            // if (current_ques.file_id) {
+            //     answer_obj['ques_id'] = current_ques.file_id;
+            // }
+
+            // send the jquery post request with the answer json as body
+            console.log(answer_obj);
+
+
+            // delete everything in the form
+            $("#main_resp").empty();
+            return true;
+        }
+
+        function ask_next_ques() {
+            let current_ques = questions[ques_index];
+            ques_time_start = moment().format('YYYY-MM-DD HH:mm:ss');
+            ques_features = qtypes[current_ques.ques_type_id]
+            // fill in the markup template with data from this ques index
+            // we define and fill in the html the markup if the ques has options
+            if (ques_features.has_options) {
+                opt_markup = '<div id="opts_cont">';
+                for (const each_opt of current_ques.options) {
+                    if (each_opt.text_associated == 1) {
+                        opt_markup += `<div class="opt_set opt_child"><input type="radio" name="opt" value="${each_opt.id}" class="text"> ${each_opt.label}:&nbsp;`;
+                        opt_markup += `<input type="text" class="opt_text" name="opt_text" disabled></div>`;
+                    } else {
+
+                        opt_markup += `<div class="opt_child"><input type="radio" name="opt" value="${each_opt.id}" class="no_text"> ${each_opt.label}</div>`;
+                    }
+                }
+                opt_markup += '</div>'
+            } else {
+                opt_markup = "";
+            }
+            // we define and fill in the html the markup if the ques has a text response
+            if (ques_features.has_text) {
+                text_markup = `<textarea class="resp_text" name="text"></textarea>`;
+            } else {
+                text_markup = "";
+            }
+            // we define and fill in the html the markup if the ques has a file associated
+            if (ques_features.has_file) {
+                // we define and add the markup to the html and then send the ajax request which will asynchronously
+                // fill in the href part and the input value part with correct values later
+                file_markup = '<a id="file_link" href="file-link-fill" target="_blank"><button class="action_btn">File link</button></a>';
+                file_markup += '<input type="text" id="file_id" name="file_id" value="file-id-fill" style="display: none">';
+
+                // we need to use jquery to get a proper file first
+                file_obj = $.getJSON(`/getfile/ques/${current_ques.ques_id}`, function (data) {
+                    // set the link attribute from the file object
+                    $('#file_link').attr('href', data.link);
+                    // set the value for the file id in the corresponsing input feild
+                    $('#file_id').attr('value', data.file_id);
+                }).fail(function (d, textStatus, error) {
+                    // if the getJSON request failed and it was because of status 422 which is sent by webserver when its out of files
+                    // then we dont make subsequent requests file requests and move onto the next question
+                    if (d.status == 422) {
+                        console.log("Ran out of files to serve, moving to next question");
+                        // since this is a callback, it will execute after the question has been exposed on the dom
+                        // so i delete it first then ask the next question
+                        $("#main_resp").empty();
+                        ques_index += 1;
+                        file_index = 0;
+                        ask_next_ques();
+                        // immediately return from this failed function after the execution of the function
+                        // above that will show a valid ques
+                        return;
+                    } else {
+                        console.error("Something went wrong in requesting file");
+                    }
+                });
+            } else {
+                file_markup = "";
+            }
+            // add it to the form
+            let ques_markup = `<div id="ques"><div id="ques_stuff"><h2 class="sub-header">${current_ques.title}</h2><p>${current_ques.info}</p></div>${file_markup} ${text_markup} ${opt_markup}</div>`;
+            $("#main_resp").prepend(ques_markup);
+        }
+        
+
+        function ask_next_file() {
+            // call finish previous question to finish that last file
+            continu = finish_prev_ques();
+            // this is to check if the people actually answereed a question of left it blank
+            if (continu) {
+                // call ask next question but without increasing the ques counter
+                ask_next_ques();
+                // increase the file counter
+                file_index += 1;
+            } else {
+                alert("You need to provide an answer before continuing");
+            }
+        }
+
+        $(document).ready(function () {
+            // call the function to show the first ques and increase the question index
+            ask_next_ques();
+
+
+            $("#main_resp").submit(function (event) {
+                // first check if we have reeached the end of survey or not
+                if (ques_index == questions.length - 1){
+                    // deal with the answer of the last ques
+                    continu = finish_prev_ques();
+                    if (continu) {
+                        // we have asked all ques now show done message and go home
+                        $("#done").show();
+                        $("#next_ques").remove();
+                        event.preventDefault();
+                        return;
+                    } else {
+                        alert("You need to provide an answer before continuing");
+                    }
+                }
+                let current_ques = questions[ques_index];
+                
+                // check if the file counter is equal to one minus ques_count
+                if (file_index === current_ques.ques_count - 1) {
+                    // although we only do anything if the user did not actually seelect an answer finish_prev will
+                    // return false and we will alert the user they need to select an answer
+                    continu = finish_prev_ques();
+                    if (continu) {
+                        // we have asked this ques as many times as we needed to, the finish_prev call dealt with the data
+                        // now we update indexes and ask the next ques
+                        file_index = 0;
+                        ques_index += 1;
+                        ask_next_ques();    
+                    } else {
+                        alert("You need to provide an answer before continuing");
+                    }
+                    
+                } else {
+                    // we still need to ask this same question for other files
+                    ask_next_file();
+                }
+                event.preventDefault();
+            })
+
+            // this handler will disable any text entry options if any other option is clicked
+            $(document).on('click', ".no_text", function () {
+                // TODO:  disable all other text input feilds too
+                $(".opt_text").prop('disabled', true);
+            })
+
+            // this handler will enable the text entry feild for a text option, which by default will be disabled
+            $(document).on('click', ".text", function () {
+                // TODO:  disable all other text input feilds too
+                $(".opt_text").prop('disabled', true);
+                // enable this one specifically
+                $(this).siblings().prop('disabled', false);
+            })
+
+
+        })
+    </script>
+</body>
+
+</html>

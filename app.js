@@ -278,7 +278,7 @@ app.get('/userhome/survey/:survey_id', async (req, res) =>{
       ques_opt_array.push(opt_obj);
     }
   }
-  res.render('pages/complete_survey', {survey: survey_results, questions:ques_array, qtypes: qtypes_json});
+  res.render('pages/answer_survey', {survey: survey_results, questions:ques_array, qtypes: qtypes_json});
 })
 
 app.post('/userhome/survey/:survey_id', (req, res) =>{
