@@ -218,7 +218,7 @@ app.get('/userhome/survey/:survey_id', async (req, res) =>{
     user_id = req.session.user_id;
   }
   // natural join the survey with the questions with the question options then order by ques_id then op_id
-  questions_query = ` select all_ques.ques_id, ques_type_id, ques_order_num, ques_count, title, info, op_id, label, text_associated from (select Questions.survey_id, ques_id, ques_type_id, ques_count, ques_order_num, Questions.title, Questions.info from Surveys inner join Questions on Surveys.survey_id = Questions.survey_id) as all_ques left join Question_Options on Question_Options.ques_id = all_ques.ques_id where survey_id = ${req.params.survey_id} order by all_ques.ques_order_num, op_id;`;
+  questions_query = ` select all_ques.ques_id, ques_type_id, ques_order_num, ques_count, title, info, op_id, label, text_associated from (select Questions.survey_id, ques_id, ques_type_id, ques_count, ques_order_num, Questions.title, Questions.info from Surveys inner join Questions on Surveys.survey_id = Questions.survey_id) as all_ques left join Options on Options.ques_id = all_ques.ques_id where survey_id = ${req.params.survey_id} order by all_ques.ques_order_num, op_id;`;
   survey_query = `select * from Surveys where survey_id = ${req.params.survey_id}`
   
   try{
@@ -533,7 +533,7 @@ app.post('/delete/survey/:survey_id', async (req, res) => {
     return;
   }
   // first i remove all the options that are about any questions related to the survey
-  option_rem = `delete from Question_Options where ques_id in (select ques_id from Questions where survey_id = ${req.params.survey_id});`;
+  option_rem = `delete from Options where ques_id in (select ques_id from Questions where survey_id = ${req.params.survey_id});`;
   // next remove all the questions themselves
   ques_rem = `delete from Questions where survey_id = ${req.params.survey_id};`;
   // now finally remove the survey itself
@@ -713,11 +713,11 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
     for (const each_opt of options_array) {
       if ( each_opt.qnum == each_ques.qnum ) {
         // this option belongs to this question so we make the insert query for it
-        opt_insert = `insert into Question_Options (ques_id, label, text_associated) values (${ques_id}, "${each_opt.label}", ${each_opt.text_associated});`;
+        opt_insert = `insert into Options (ques_id, label, text_associated) values (${ques_id}, "${each_opt.label}", ${each_opt.text_associated});`;
         try{
           ins_result = await db_call(opt_insert); 
         } catch (err) {
-          console.error("Options insert query failed", ins_insert, "for question", each_ques.qnum);
+          console.error("Options insert query failed", ins_result, "for question", each_ques.qnum);
           res.redirect(`/adminhome/study/${req.params.study_id}/`);
         }
       }

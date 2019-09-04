@@ -112,3 +112,8 @@ CREATE TABLE `Files_in_Use`(
 	    REFERENCES `Files`(`file_id`),
 	PRIMARY KEY(`file_id`, `ques_id`)
 );
+
+insert into Question_Types (label, has_text, has_options, has_file) values ("classification", 0, 1, 1);
+insert into Question_Types (label, has_text, has_options, has_file) values ("summary", 1, 0, 1);
+insert into Question_Types (label, has_text, has_options, has_file) values ("open_response", 1, 0, 0);
+insert into Question_Types (label, has_text, has_options, has_file) values ("rating", 0, 1, 0);
