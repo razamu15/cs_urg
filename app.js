@@ -731,8 +731,13 @@ app.listen(PORT, () => {
 })
 
  /*
+  * have app js take cli arguments for which ports to look for databases on
+  * possible bug where if you end off on a file question, then you dont get the final done screen so completed survey doesnt get updated
+  * the distribute option didnt default to 1 when the file count was 0, ie there were no files at all
+  * sometimes it tells you that didnt provide an answer before submitting when yuo acntually did
+  * if survey creation fail at any part, send a request to the delete route to clean up any partial inserts
+  
   * updae ui for login and register page maybe
   * test mutiple users with with different users havning completed different surveys
-  * make a complete and proper sql script to create the database
   * docker image
   * */
