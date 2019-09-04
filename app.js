@@ -585,7 +585,12 @@ async function get_distributed_value() {
   file_count = file_count[0]['COUNT(*)'];
   user_count = user_count[0]['COUNT(*)'];
   result = Math.ceil(file_count/user_count);
-  return result;
+  // we wanna make sure we dont return infinity or zero as a our ques_count
+  if (result == 0 || !isFinite(result)) {
+    return 1;
+  } else {
+    return result; 
+  }
 }
 
 app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
@@ -733,7 +738,6 @@ app.listen(PORT, () => {
  /*
   * have app js take cli arguments for which ports to look for databases on
   * possible bug where if you end off on a file question, then you dont get the final done screen so completed survey doesnt get updated
-  * the distribute option didnt default to 1 when the file count was 0, ie there were no files at all
   * sometimes it tells you that didnt provide an answer before submitting when yuo acntually did
   * if survey creation fail at any part, send a request to the delete route to clean up any partial inserts
   
