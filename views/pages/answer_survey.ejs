@@ -176,10 +176,10 @@
             continu = finish_prev_ques();
             // this is to check if the people actually answereed a question of left it blank
             if (continu) {
-                // call ask next question but without increasing the ques counter
-                ask_next_ques();
                 // increase the file counter
                 file_index += 1;
+                // call ask next question but without increasing the ques counter
+                ask_next_ques();
             } else {
                 alert("You need to provide an answer before continuing");
             }
@@ -196,6 +196,8 @@
                     // we gotta make sure that we ask this ques for as many files as we need to
                     if (!(file_index == current_ques.ques_count - 1)) {
                         ask_next_file();
+                        event.preventDefault();
+                            return;
                     } else {
                         // deal with the answer of the last ques
                         continu = finish_prev_ques();
@@ -207,6 +209,8 @@
                             return;
                         } else {
                             alert("You need to provide an answer before continuing");
+                            event.preventDefault();
+                            return;
                         }
                     }
                 }
@@ -225,6 +229,8 @@
                         ask_next_ques();
                     } else {
                         alert("You need to provide an answer before continuing");
+                        event.preventDefault();
+                        return;
                     }
                 } else {
                     // we still need to ask this same question for other files
