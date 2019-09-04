@@ -145,9 +145,17 @@
                         // since this is a callback, it will execute after the question has been exposed on the dom
                         // so i delete it first then ask the next question
                         $("#main_resp").empty();
-                        ques_index += 1;
-                        file_index = 0;
-                        ask_next_ques();
+                        // if this was the last question, and were done with files, we dont have another ques to ask
+                        if (ques_index == questions.length - 1) {
+                            // we have asked all ques now show done message and go home
+                            $("#done").show();
+                            $("#next_ques").remove();
+                            return;
+                        } else {
+                            ques_index += 1;
+                            file_index = 0;
+                            ask_next_ques();
+                        }
                         // immediately return from this failed function after the execution of the function
                         // above that will show a valid ques
                         return;

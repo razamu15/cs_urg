@@ -113,6 +113,7 @@ CREATE TABLE `Files_in_Use`(
 	PRIMARY KEY(`file_id`, `ques_id`)
 );
 
+insert into Users (email, password, is_active, gender) values ("userview", "UTSC_CS_admin321!", 1, "x");
 insert into Question_Types (label, has_text, has_options, has_file) values ("classification", 0, 1, 1);
 insert into Question_Types (label, has_text, has_options, has_file) values ("summary", 1, 0, 1);
 insert into Question_Types (label, has_text, has_options, has_file) values ("open_response", 1, 0, 0);

@@ -111,7 +111,7 @@ app.post('/login', async (req, res) => {
     req.session['email'] = admin_login.email;
     res.redirect('/adminhome');
     return;
-  }
+  } 
 
   // first we run the query on the database to get the relevant information for this user
   user_query = `select * from Users where email = "${req.body.email}"`;
@@ -288,6 +288,9 @@ app.post('/userhome/survey/:survey_id', async (req, res) =>{
   } else if (req.session.user_id == "admin") {
     res.sendStatus(403);
     return;
+  } else if (req.session.email == "userview") {
+    res.sendStatus(200);
+    return;
   }
   file_fill = req.body.file_id;
   text = req.body.text;
@@ -314,10 +317,12 @@ app.post('/userhome/survey_complete/:survey_id', async (req, res) =>{
   } else if (req.session.user_id == "admin") {
     res.sendStatus(403);
     return;
+  } else if (req.session.email == "userview") {
+    res.sendStatus(200);
+    return;
   }
   // we difine and run the query that will mark this survey as completed for this user
   finish_query = `insert into Completed_Surveys (user_id, survey_id, completion_date) values (${req.session.user_id}, ${req.params.survey_id}, curdate());`;
-  console.log(finish_query);
   try {
     result = await db_call(finish_query);
     res.sendStatus(200);
@@ -328,6 +333,17 @@ app.post('/userhome/survey_complete/:survey_id', async (req, res) =>{
 })
 
 app.get('/getfile/ques/:ques_id', async (req, res) =>{
+  // check session
+  if (!req.session.user_id) {
+    res.sendStatus(401);
+    return;
+  } else if (req.session.user_id == "admin") {
+    res.sendStatus(403);
+    return;
+  } else if (req.session.email == "userview") {
+    res.sendStatus(200);
+    return;
+  }
   // first we run the query to get any files that have been answered at least once but not enough times
   response_overlap = 2;
   parital_query = `select Files.file_id, link, partials.count from (select * from Files_in_Use where ques_id = ${req.params.ques_id} and count < ${response_overlap}) as partials inner join Files on Files.file_id = partials.file_id;`;
