@@ -455,7 +455,7 @@ app.post('/adminhome/create_study', async (req, res) => {
     return;
   }
   // take the info from the request body, and put it in the sql query
-  study_query = `insert into Studies (title, info, is_active) values, ("${req.body.title}", "${req.body.info}", 1);`
+  study_query = `insert into Studies (title, info, is_active) values ("${req.body.title}", "${req.body.info}", 1);`
   // execute the sql query
   try {
     ins_result = await db_call(study_query);
