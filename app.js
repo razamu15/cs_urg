@@ -753,7 +753,7 @@ app.listen(PORT, () => {
 
  /*
   * have app js take cli arguments for which ports to look for databases on
-  * possible bug where if you end off on a file question, then you dont get the final done screen so completed survey doesnt get updated
+  * in summary questions, it shows you the message that yuo need to put in a anwer even oif yoou did
   * sometimes it tells you that didnt provide an answer before submitting when yuo acntually did
   * if survey creation fail at any part, send a request to the delete route to clean up any partial inserts
   
