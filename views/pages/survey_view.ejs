@@ -40,6 +40,7 @@
         <form id="delete_surv" method="GET" action="/adminhome/study/<%= study_id %>/">
             <button class="action_btn" type="submit" value="Delete">Delete this Survey</button>
         </form>
+
         <form id="reset_surv">
             <button class="action_btn" type="submit" value="Reset">Reset this Survey</button>
         </form>
@@ -69,31 +70,32 @@
                 event.preventDefault();
             })
 
-            $("#delete_surv").submit(function (event) {
+            $("#delete_surv").click(function (event) {
                 // we send a post request using ajax to reset the survey then we check its response to see if it succeeded or failed
                 reset = $.post("/reset/survey/<%= survey_id %>", function (data, textStatus) {
                     if (data != "OK") {
                         // show message on screen saying reset of survey before deletion failed
                         console.error("Reset before delete failed, aborting message:", textStatus);
-                        event.preventDefault();
                     } else {
-                        // the rest was successfull so now send the post request to actaully delete the survey
+                        // the reset was successfull so now send the post request to actaully delete the survey
                         del = $.post("/delete/survey/<%= survey_id %>", function (data, textStatus) {
                             if (data != "OK") {
                                 // show message on dom saying there was a fail
                                 console.error("survey data was reset but deletion failed", textStatus);
-                                event.preventDefault();
                             } else {
-                                // survey was deleted so we let the default behaviour of the form to take them elsewhere
-                                continue;
+                                // take the user away to a differnet page
+                                window.location.href = "/adminhome/study/<%= study_id %>/";
                             }
                         }).fail(function (d, textStatus, error) {
                             console.error("Delete failed, aborting message:", textStatus);
-                        });;
+                        });
                     }
                 }).fail(function (d, textStatus, error) {
                     console.error("Reset before delete failed, aborting message:", textStatus);
+                    console.error(d);
+                    console.error(error);
                 });
+                event.preventDefault();
             })
 
         })

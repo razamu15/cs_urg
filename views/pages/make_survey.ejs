@@ -27,6 +27,11 @@
             text-decoration: none;
         }
 
+        .ques_stuff{
+            display: flex;
+            align-items: center;
+        }
+
         .ques_side{
             display: flex;
             justify-content: space-around;
@@ -130,10 +135,12 @@
                         <legend>Question ${qnum}</legend>
                     <div class="ques_side">
                         <input type="text" name="${qnum + '_type_id'}" id="${qnum + '_type_id'}" value="${form_data[0].value}">
-                        Question text: <input type="text" name="${qnum + '_title'}" id="${qnum + '_title'}">
-                        Question info: <textarea name="${qnum + '_info'}" id="${qnum + '_info'}"></textarea>
+                        <div class="ques_stuff">
+                        Question text: <input type="text" name="${qnum + '_title'}" id="${qnum + '_title'}"></div>
+                        <div class="ques_stuff">
+                        Question info: <textarea name="${qnum + '_info'}" id="${qnum + '_info'}"></textarea></div>
                         <div id="${qnum + '_file'}">
-                            Question count:&nbsp;<input type="text" name="${qnum + '_count'}" id="${qnum + '_count'}" placeholder="# or distribute"><br>
+                            Question count:<div id="count_div"><input type="text" name="${qnum + '_count'}" id="${qnum + '_count'}" placeholder="# of files or 'distribute'"><br></div>
                             <a href="#">File Link Here</a><br>
                         </div>
                         </div>

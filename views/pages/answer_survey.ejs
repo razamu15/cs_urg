@@ -4,34 +4,32 @@
     <link href="https://fonts.googleapis.com/css?family=Ubuntu" rel="stylesheet">
     <link rel="stylesheet" href="/css/standard.css">
     <link rel="stylesheet" href="/css/widgets.css">
-    <title>this is da page</title>
+    <title>Answer Survey</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/moment@2.24.0/moment.min.js"></script>
     <style>
-        
-        #main_resp{
+        #main_resp {
             margin-bottom: 10px;
         }
 
-        #ques{
+        #ques {
             display: flex;
             flex-direction: column;
         }
 
-        #ques_stuff{
+        #ques_stuff {
             margin-bottom: 10px;
         }
 
-        #opts_cont{
+        #opts_cont {
             display: flex;
             flex-direction: column;
             margin-top: 10px;
         }
 
-        .opt_child{
+        .opt_child {
             margin: 5px;
         }
-
     </style>
 </head>
 
@@ -39,15 +37,16 @@
     <%- include('../partials/navbar', {action:"logout", home:"userhome"}) %>
     <div id="content">
         <form action="/userhome" method="GET" id="main_resp">
-            
+
         </form>
         <button type="submit" id="next_ques" form="main_resp" class="action_btn">Next Question</button>
-        
-        
-        <form action="/userhome" method="GET" id="done" style="display: none">
+
+
+        <div id="done" style="display: none">
             <p>no more questions left</p>
-            <button type="submit" id="finish" class="action_btn">Finish</button>
-        </form>
+            <button id="finish" class="action_btn">Finish</button>
+        </div>
+        
     </div>
 
     <script>
@@ -63,17 +62,17 @@
             answer_obj = {};
             // get the form data using serialize
             user_answer = $("#main_resp").serializeArray();
-            for ( item of user_answer){
+            for (item of user_answer) {
                 answer_obj[item.name] = item.value;
             }
-            
+
             // we check to make sure the user did actaully provide an answer in the form data
             // and if they didnt we return false to the handler which will alert the user
             if (answer_obj.hasOwnProperty('text') && answer_obj.text == "") {
                 return false;
             } else if (answer_obj.hasOwnProperty('opt_text') && answer_obj.opt_text == "") {
                 return false;
-            } else if(!answer_obj.hasOwnProperty('opt') && !answer_obj.hasOwnProperty('text')) {
+            } else if (!answer_obj.hasOwnProperty('opt') && !answer_obj.hasOwnProperty('text')) {
                 return false;
             }
 
@@ -82,14 +81,16 @@
             answer_obj['end_time'] = moment().format('YYYY-MM-DD HH:mm:ss');
             // add extra information such as ques id
             answer_obj['ques_id'] = current_ques.ques_id;
-            // // add a file id if this ques has a file
-            // if (current_ques.file_id) {
-            //     answer_obj['ques_id'] = current_ques.file_id;
-            // }
 
             // send the jquery post request with the answer json as body
-            console.log(answer_obj);
-
+            $.post("/userhome/survey/<%= survey_id %>", answer_obj, function (data, textStatus) {
+                if (data != "OK") {
+                    // show message on dom saying there was a fail
+                    console.error("Data submission for previous question failed", textStatus);
+                }
+            }).fail(function (d, textStatus, error) {
+                console.error("Data submission for previous question failed", textStatus);
+            });
 
             // delete everything in the form
             $("#main_resp").empty();
@@ -161,7 +162,6 @@
             let ques_markup = `<div id="ques"><div id="ques_stuff"><h2 class="sub-header">${current_ques.title}</h2><p>${current_ques.info}</p></div>${file_markup} ${text_markup} ${opt_markup}</div>`;
             $("#main_resp").prepend(ques_markup);
         }
-        
 
         function ask_next_file() {
             // call finish previous question to finish that last file
@@ -181,24 +181,29 @@
             // call the function to show the first ques and increase the question index
             ask_next_ques();
 
-
             $("#main_resp").submit(function (event) {
                 // first check if we have reeached the end of survey or not
-                if (ques_index == questions.length - 1){
-                    // deal with the answer of the last ques
-                    continu = finish_prev_ques();
-                    if (continu) {
-                        // we have asked all ques now show done message and go home
-                        $("#done").show();
-                        $("#next_ques").remove();
-                        event.preventDefault();
-                        return;
+                if (ques_index == questions.length - 1) {
+                    let current_ques = questions[ques_index];
+                    // we gotta make sure that we ask this ques for as many files as we need to
+                    if (!(file_index == current_ques.ques_count - 1)) {
+                        ask_next_file();
                     } else {
-                        alert("You need to provide an answer before continuing");
+                        // deal with the answer of the last ques
+                        continu = finish_prev_ques();
+                        if (continu) {
+                            // we have asked all ques now show done message and go home
+                            $("#done").show();
+                            $("#next_ques").remove();
+                            event.preventDefault();
+                            return;
+                        } else {
+                            alert("You need to provide an answer before continuing");
+                        }
                     }
                 }
                 let current_ques = questions[ques_index];
-                
+
                 // check if the file counter is equal to one minus ques_count
                 if (file_index === current_ques.ques_count - 1) {
                     // although we only do anything if the user did not actually seelect an answer finish_prev will
@@ -209,11 +214,10 @@
                         // now we update indexes and ask the next ques
                         file_index = 0;
                         ques_index += 1;
-                        ask_next_ques();    
+                        ask_next_ques();
                     } else {
                         alert("You need to provide an answer before continuing");
                     }
-                    
                 } else {
                     // we still need to ask this same question for other files
                     ask_next_file();
@@ -235,6 +239,20 @@
                 $(this).siblings().prop('disabled', false);
             })
 
+            $("#finish").click(function (event) {
+                // we send the post request to indicate this survey has been completed
+                $.post("/userhome/survey_complete/<%= survey_id %>", function (data, textStatus) {
+                    if (data != "OK") {
+                        // show message on dom saying there was a fail
+                        console.error("Updating status of survey failed", textStatus);
+                    } else {
+                        // redirect the user
+                        window.location.href = "/userhome";
+                    }
+                }).fail(function (d, textStatus, error) {
+                    console.error("Updating status of survey failed", textStatus);
+                });
+            })
 
         })
     </script>

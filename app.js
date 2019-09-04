@@ -278,12 +278,53 @@ app.get('/userhome/survey/:survey_id', async (req, res) =>{
       ques_opt_array.push(opt_obj);
     }
   }
-  res.render('pages/answer_survey', {survey: survey_results, questions:ques_array, qtypes: qtypes_json});
+  res.render('pages/answer_survey', {survey: survey_results, questions:ques_array, qtypes: qtypes_json, survey_id:req.params.survey_id});
 })
 
-app.post('/userhome/survey/:survey_id', (req, res) =>{
-  console.log(req.body);
-  res.send("thx for completing the survey my dawgy");
+app.post('/userhome/survey/:survey_id', async (req, res) =>{
+  if (!req.session.user_id) {
+    res.sendStatus(401);
+    return;
+  } else if (req.session.user_id == "admin") {
+    res.sendStatus(403);
+    return;
+  }
+  file_fill = req.body.file_id;
+  text = req.body.text;
+  opt_id = req.body.opt;
+  opt_text = req.body.opt_text;
+  // define and fill in the response insert query
+  insert_query = `insert into Responses (ques_id, file_id, user_id, op_id, op_text, text_resp, time_started, time_ended) values (${req.body.ques_id}, ${file_fill ? file_fill : "NULL"}, ${req.session.user_id}, ${opt_id ? opt_id : "NULL"}, "${opt_text ? opt_text : "NULL"}", "${text ? text : "NULL"}", "${req.body.start_time}", "${req.body.end_time}");`;
+
+  // execute it on the database
+  try {
+    ins_result = await db_call(insert_query);
+    res.sendStatus(200);
+  } catch (err) {
+    console.error("failed to insert response in the db", insert_query);
+    res.sendStatus(501);
+  }
+})
+
+app.post('/userhome/survey_complete/:survey_id', async (req, res) =>{
+  // check session
+  if (!req.session.user_id) {
+    res.sendStatus(401);
+    return;
+  } else if (req.session.user_id == "admin") {
+    res.sendStatus(403);
+    return;
+  }
+  // we difine and run the query that will mark this survey as completed for this user
+  finish_query = `insert into Completed_Surveys (user_id, survey_id, completion_date) values (${req.session.user_id}, ${req.params.survey_id}, curdate());`;
+  console.log(finish_query);
+  try {
+    result = await db_call(finish_query);
+    res.sendStatus(200);
+  } catch (error) {
+    console.log("query to mark survey completed, failed", finish_query);
+    res.sendStatus(501);
+  }
 })
 
 app.get('/getfile/ques/:ques_id', async (req, res) =>{
@@ -515,6 +556,16 @@ app.get('/adminhome/study/:study_id/create_survey', async (req, res) => {
   res.render('pages/make_survey', { ques_types_query : query_result, study_id: req.params.study_id });
 });
 
+async function get_distributed_value() {
+  // get the active file count and the active user count
+  file_count = await db_call("select COUNT(*) from Files where is_active = 1;");
+  user_count = await db_call("select COUNT(*) from Users where is_active = 1;");
+  file_count = file_count[0]['COUNT(*)'];
+  user_count = user_count[0]['COUNT(*)'];
+  result = Math.ceil(file_count/user_count);
+  return result;
+}
+
 app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
   // this page is not accessible if not signed in as admin
   if (req.session.user_id != "admin") {
@@ -604,7 +655,19 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
 
   // since there can be questions we will loop through all of the objects present in the questions array
   for (const each_ques of ques_array) {
-    ques_insert = `insert into Questions (ques_type_id, survey_id, title, info, ques_order_num, ques_count) values (${each_ques.type}, ${survey_id}, "${each_ques.title}", "${each_ques.info}", ${each_ques.qnum}, ${each_ques.count});`;
+    // before we can insert the question, if the count is "distribute" we first need to calculate the number
+    if (each_ques.count == "distribute") {
+      // do the calculation in an async function and get its result
+      try {
+        qcount = await get_distributed_value();
+      } catch (err) {
+        console.error("couldnt find distribute value, defaulting to 1");
+        qcount = 1;
+      }
+    } else {
+      qcount = each_ques.count;
+    }
+    ques_insert = `insert into Questions (ques_type_id, survey_id, title, info, ques_order_num, ques_count) values (${each_ques.type}, ${survey_id}, "${each_ques.title}", "${each_ques.info}", ${each_ques.qnum}, ${qcount});`;
     // wrap the query in try catch in case the promise is rejected
     try{
       ins_result = await db_call(ques_insert); 
@@ -644,20 +707,10 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port 3000`);
 })
-/**
- * THERE ARE A COUPLE THINGS THAT  MIGHT NEEED TO MODIFFY AOBUT THE DB
- * 1. RIGHT NOW IF THERE IS A TEXT OPTION, THEN ACTUAL TEXT RESPONSE WIL GO INTO THE RESPONSE OPEN_RESP COLUMN
- *   I MIGHT WANT TO ADD A TEXT_ANS COLUMN IN THE OPTIONS TABLE ITSELF BECAUSE THEN YOU WONT HAVE TO LOOK UP THE OPTION TYPE, LOOK AT IF IT IS TEXT ASSOCIATED AND THEN GO BACK TO THE RESPONSES TABLE TO GET THE TEXT
- * 2. AT THIS POINT THERE IS NO OTHER WAY TO UNIQELY IDETIFY A SURVEY OTHER THAN ITS SURVEY_ID AND THATS BAD BECAUSE AS SOON AS I CREATE THE SURVEY I HAVE NO WAY OF KNOWING WHAT ITS ID FOR FOREIGN KEY CONTRAINTS
- *  I COULD MAKE STUDY ID AND THE TITLE UNIQUE TOGETHER, ORRR I EXPLICITLY CREATE A ID EVERY TIME I INSERT INTO THE DB(SEEMS BAD)
- */
 
  /*
-  * ADD DESTRIBUTE OPTION FOR DEFININF FILE COUNT
-  * PUT COMPLETE SURVEY FORM DATA INTO THE DATABSE
-  * the complete survey page doesnt add time end stamp for last file run of a question
-  * UPDATE UI
+  * updae ui for login and register page maybe
   * test mutiple users with with different users havning completed different surveys
   * make a complete and proper sql script to create the database
-  * docker iamge
+  * docker image
   * */
