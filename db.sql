@@ -79,18 +79,14 @@ CREATE TABLE `Responses` (
 	`file_id`  INT,
 	`user_id`  INT NOT NULL,
 	`op_id`	 INT,
-    `op_text` TEXT,
+	`op_text`  TEXT,
 	`text_resp` TEXT,
 	`time_started` DATETIME NOT NULL,
 	`time_ended` DATETIME NOT NULL,
-	FOREIGN KEY(`user_id`)
-	    REFERENCES `Users`(`user_id`),
-	FOREIGN KEY(`op_id`)
-	    REFERENCES `Question_Options`(`op_id`),
-	FOREIGN KEY(`ques_id`)
-	    REFERENCES `Questions`(`ques_id`),
-	FOREIGN KEY(`file_id`)
-	    REFERENCES `Files`(`file_id`),
+	FOREIGN KEY(`user_id`) REFERENCES `Users`(`user_id`),
+	FOREIGN KEY(`op_id`) REFERENCES `Options`(`op_id`),
+	FOREIGN KEY(`ques_id`) REFERENCES `Questions`(`ques_id`),
+	FOREIGN KEY(`file_id`) REFERENCES `Files`(`file_id`),
 	UNIQUE KEY(`ques_id`,`file_id`,`user_id`, `op_id`),
 	PRIMARY KEY(`response_id`)
 );
