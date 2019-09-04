@@ -4,7 +4,7 @@
     <link href="https://fonts.googleapis.com/css?family=Ubuntu" rel="stylesheet">
     <link rel="stylesheet" href="/css/standard.css">
     <link rel="stylesheet" href="/css/widgets.css">
-    <title>this is da page</title>
+    <title>Admin Home</title>
 </head>
 
 <body>
@@ -25,6 +25,10 @@
         </div>
         <% } %>
         <% } %>
+        <form method="POST" action="/adminhome/create_study" id="create_study">
+            <input type="text" name="title" placeholder="Enter New Study Title">
+            <input type="text" name="info" placeholder="Enter New Study Info">
+        </form>
     </div>
 </body>
 

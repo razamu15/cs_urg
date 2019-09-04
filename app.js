@@ -12,7 +12,7 @@ var dbconn = mysql.createConnection({
     host:'localhost',
     user:'root',
     password:'password',
-    database:'ins'
+    database:'CS_URG'
 });
 // define the redis client
 var redisClient = redis.createClient();
@@ -448,6 +448,23 @@ app.get('/adminhome/study/:study_id', async (req, res) =>{
   res.render("pages/study_view", {study_id : req.params.study_id, surveys: query_result});
 })
 
+app.post('/adminhome/create_study', async (req, res) => {
+  // this page is not accessible if not signed in as admin
+  if (req.session.user_id != "admin") {
+    res.redirect('/');
+    return;
+  }
+  // take the info from the request body, and put it in the sql query
+  study_query = `insert into Studies (title, info, is_active) values, ("${req.body.title}", "${req.body.info}", 1);`
+  // execute the sql query
+  try {
+    ins_result = await db_call(study_query);
+  } catch (err) {
+    console.error("failed to create new study", study_query);
+  }
+  res.redirect('/adminhome');
+})
+
 app.get('/adminhome/study/:study_id/survey/:survey_id', async (req, res) =>{
   // this page is not accessible if not signed in as admin
   if (req.session.user_id != "admin") {
@@ -465,6 +482,11 @@ app.get('/adminhome/study/:study_id/survey/:survey_id', async (req, res) =>{
 })
 
 app.post('/adminhome/study/:study_id/survey/:survey_id', async (req, res) =>{
+  // this page is not accessible if not signed in as admin
+  if (req.session.user_id != "admin") {
+    res.redirect('/');
+    return;
+  }
   // i need to check if the 2 items from the request body are empty or not and build the query accordingly
   pub_update = (req.body.is_published != "");
   exp_update = (req.body.expiry_date != "");
