@@ -196,7 +196,7 @@ app.get('/userhome', async (req, res) => {
     user_id = req.session.user_id;
   }
   // first we gott run the query for all the surveys that are active ie(publised and not expired)
-  survey_query = `select * from Surveys where survey_id not in (select survey_id from Completed_Surveys where user_id = ${user_id}) and expiry_date > curdate() and is_published = 1;`;
+  survey_query = `select * from Surveys where survey_id not in (select survey_id from Completed_Surveys where user_id = ${user_id} and is_round = 0) and expiry_date > curdate() and is_published = 1;`;
   try{
     active_surveys = await db_call(survey_query);
   } catch (err) {
@@ -278,7 +278,13 @@ app.get('/userhome/survey/:survey_id', async (req, res) =>{
       ques_opt_array.push(opt_obj);
     }
   }
-  res.render('pages/answer_survey', {survey: survey_results, questions:ques_array, qtypes: qtypes_json, survey_id:req.params.survey_id});
+  // after all that stuff we check if this survey was a round or not and then render the appropriate page
+  if (+survey_results.is_round == 1) {
+    res.render('pages/answer_round', {survey: survey_results, questions:ques_array, qtypes: qtypes_json, survey_id:req.params.survey_id});
+  } else {
+    res.render('pages/answer_survey', {survey: survey_results, questions:ques_array, qtypes: qtypes_json, survey_id:req.params.survey_id});
+  }
+  
 })
 
 app.post('/userhome/survey/:survey_id', async (req, res) =>{
@@ -322,7 +328,30 @@ app.post('/userhome/survey_complete/:survey_id', async (req, res) =>{
     return;
   }
   // we difine and run the query that will mark this survey as completed for this user
-  finish_query = `insert into Completed_Surveys (user_id, survey_id, completion_date) values (${req.session.user_id}, ${req.params.survey_id}, curdate());`;
+  finish_query = `insert into Completed_Surveys (user_id, survey_id, completion_date, is_round) values (${req.session.user_id}, ${req.params.survey_id}, curdate(), 0);`;
+  try {
+    result = await db_call(finish_query);
+    res.sendStatus(200);
+  } catch (error) {
+    console.log("query to mark survey completed, failed", finish_query);
+    res.sendStatus(501);
+  }
+})
+
+app.post('/userhome/round_complete/:survey_id', async (req, res) =>{
+  // check session
+  if (!req.session.user_id) {
+    res.sendStatus(401);
+    return;
+  } else if (req.session.user_id == "admin") {
+    res.sendStatus(403);
+    return;
+  } else if (req.session.email == "userview") {
+    res.sendStatus(200);
+    return;
+  }
+  // we difine and run the query that will mark this survey as completed for this user
+  finish_query = `insert into Completed_Surveys (user_id, survey_id, completion_date, is_round) values (${req.session.user_id}, ${req.params.survey_id}, curdate(), 1);`;
   try {
     result = await db_call(finish_query);
     res.sendStatus(200);
@@ -594,6 +623,24 @@ app.get('/adminhome/study/:study_id/create_survey', async (req, res) => {
   res.render('pages/make_survey', { ques_types_query : query_result, study_id: req.params.study_id });
 });
 
+app.get('/adminhome/study/:study_id/create_round', async (req, res) => {
+  // this page is not accessible if not signed in as admin
+  if (req.session.user_id != "admin") {
+    res.redirect('/');
+    return;
+  }
+  // we shall wait untill we ge the result from the query
+  try{
+    query_result = await db_call("select * from Question_Types where has_file = 1;");
+  } catch (err){
+    console.error("question Types query failed" + err);
+    res.redirect(`/adminhome/study/${req.params.study_id}/`);
+    return;
+  }
+  res.render('pages/make_round', { ques_types_query : query_result, study_id: req.params.study_id });
+});
+
+// this function calculates the ques_count if we want to distribute the files evenly between all users.
 async function get_distributed_value() {
   // get the active file count and the active user count
   file_count = await db_call("select COUNT(*) from Files where is_active = 1;");
@@ -675,7 +722,7 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
   // now that we have all out data placed in these structures, we can go through them and add stuff in order
   
   // run the query for the survey first since the question needs to refer to it with a foreign key
-  survey_insert = `insert into Surveys (study_id, title, info, expiry_date, is_published) values (${req.params.study_id}, "${survey_info.surv_title}", "${survey_info.surv_info}", NULL, 0);`;
+  survey_insert = `insert into Surveys (study_id, title, info, expiry_date, is_published, is_round) values (${req.params.study_id}, "${survey_info.surv_title}", "${survey_info.surv_info}", NULL, 0, ${survey_info.is_round});`;
   // wrap the query in try catch in case if promise is rejected
   try{
     ins_result = await db_call(survey_insert); 
@@ -753,9 +800,8 @@ app.listen(PORT, () => {
 
  /*
   * have app js take cli arguments for which ports to look for databases on
-  * in summary questions, it shows you the message that yuo need to put in a anwer even oif yoou did
-  * sometimes it tells you that didnt provide an answer before submitting when yuo acntually did
   * if survey creation fail at any part, send a request to the delete route to clean up any partial inserts
+  * the get_distributed_values() function does not have any repetition overlap for files, need to add that
   
   * updae ui for login and register page maybe
   * test mutiple users with with different users havning completed different surveys

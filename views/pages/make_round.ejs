@@ -55,17 +55,17 @@
 
         <form action="/adminhome/study/<%= study_id %>/create_survey" method="POST"
             enctype='application/x-www-form-urlencoded'>
-            <h2 class="sub-header">Survey Info</h2>
+            <h2 class="sub-header">Round Info</h2>
             <fieldset name="survey_data" id="survey_data">
-                <legend>Enter the Survey related info Here</legend>
-                <input type="text" name="is_round" id="surv_round_bool" value="0" style="display: none;">
-                <span class="label">Survey Title:&nbsp;<input type="text" name="surv_title" id="surv_title"></span>
+                <legend>Enter the round related info Here</legend>
+                <input type="text" name="is_round" id="surv_round_bool" value="1" style="display: none;">
+                <span class="label">Round Title:&nbsp;<input type="text" name="surv_title" id="surv_title"></span>
                 <br>
                 <div style="display: flex; flex-direction: row; align-items:center">
-                <span class="label">Survey Info:&nbsp;</span><textarea name="surv_info" id="surv_info"></textarea>
+                <span class="label">Round Info:&nbsp;</span><textarea name="surv_info" id="surv_info"></textarea>
             </div>
             </fieldset>
-            <h2 class="sub-header">Create Questions</h2>
+            <h2 class="sub-header">Create Round Question</h2>
             <br>
             <div name="questions" id="questions">
                 
@@ -98,7 +98,7 @@
         qnum = 0;
         opnum = 0;
         // this variable is to track the state if there is an open/unsaved ques or not
-        unsaved_ques = false;
+        round_ques_created = false;
         // lets first grab the query result that was given to us when the template was rendered
         ques_types = <%- JSON.stringify(ques_types_query) %>;
 
@@ -114,8 +114,9 @@
             // this is an intercepter to the default form submit event which is a post request
             $("#create_ques").submit(function (event) {
                 // here check to make sure that there are no open questions before we let user make another question
-                if (unsaved_ques) {
-                    alert("save the previous question before making the next one");
+                if (round_ques_created) {
+                    alert("You can only have one question in a round. This same question will be repeated to the user with different files.\n\
+                    If you want more than one question, then create a survey");
                     event.preventDefault();
                     return;
                 }
@@ -141,7 +142,7 @@
                         <div class="ques_stuff">
                         Question info: <textarea name="${qnum + '_info'}" id="${qnum + '_info'}"></textarea></div>
                         <div id="${qnum + '_file'}">
-                            Question count:<div id="count_div"><input type="text" name="${qnum + '_count'}" id="${qnum + '_count'}" placeholder="# of files or 'distribute'"><br></div>
+                            <input type="text" name="${qnum + '_count'}" id="${qnum + '_count'}" style="display: none;" value="9999">
                             <a href="#">File Link Here</a><br>
                         </div>
                         </div>
@@ -170,7 +171,7 @@
                 // and we also wanna always hide the type if from the user because it doesnt concern them
                 $(`#${qnum + '_type_id'}`).hide();
                 // set the question state tracking variable
-                unsaved_ques = true;
+                round_ques_created = true;
 
                 event.preventDefault();
             });
@@ -194,7 +195,6 @@
                 // you can only create a new qustion once you have saved the old one
                 qnum += 1;
                 opnum = 0;
-                unsaved_ques = false;
             });
 
             $(document).on('click', "#create_opts", function () {

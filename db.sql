@@ -32,6 +32,7 @@ CREATE TABLE `Surveys` (
 	`info` TEXT NOT NULL,
 	`expiry_date` DATE,
 	`is_published` BOOLEAN NOT NULL,
+	`is_round` BOOLEAN NOT NULL,
 	FOREIGN KEY(`study_id`) 
 	    REFERENCES `Studies`(`study_id`),
 	UNIQUE KEY (`study_id`,`title`),
@@ -95,6 +96,7 @@ CREATE TABLE `Completed_Surveys`(
 	`user_id` INT NOT NULL,
 	`survey_id`  INT NOT NULL,
 	`completion_date` DATETIME,
+	`is_round` BOOLEAN NOT NULL,
 	FOREIGN KEY(`survey_id`)
 	    REFERENCES `Surveys`(`survey_id`),
 	FOREIGN KEY(`user_id`)

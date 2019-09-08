@@ -4,29 +4,64 @@
     <link href="https://fonts.googleapis.com/css?family=Ubuntu" rel="stylesheet">
     <link rel="stylesheet" href="/css/standard.css">
     <link rel="stylesheet" href="/css/widgets.css">
-    <title>this is da page</title>
+    <title>Study</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 </head>
 
 <body>
     <%- include('../partials/navbar', {action:"logout", home:"adminhome"}) %>
+
+
     <div id="content">
-        <h2 class="sub-header">Surveys in this Study</h2>
-        <% for (const row of surveys) { %>
-        <div class="widget">
-            <a href="/adminhome/study/<%= study_id %>/survey/<%= row.survey_id %>" class="widget_link">
-                <div class="widget_cont">
-                    <div class="widget_top">
-                        <div class="title"><span class="label"></span><%= row.title %></div>
-                        <div class="expiry"><span class="label">Expiry date:&nbsp;</span><%= row.expiry_date %></div>
-                    </div>
-                    <div class="info"><span class="label">Description:&nbsp;</span><%= row.info %></div>
-                </div>
-            </a>
+        <div id="survey_side">
+            <h2 class="sub-header">Active Surveys</h2>
+
         </div>
-        <% } %>
+
+        <div id="round_side">
+            <h2 class="sub-header">Active Rounds</h2>
+
+        </div>
 
         <a href="/adminhome/study/<%= study_id %>/create_survey"><button class="action_btn">Create New Survey</button></a>
+        <a href="/adminhome/study/<%= study_id %>/create_round"><button class="action_btn">Create New Round</button></a>
     </div>
+
+
+    <script>
+        surveys_in_study = <%- JSON.stringify(surveys) %>;
+
+        $(document).ready(function () {
+            // loop through all the list of available things this user can do and show them on screen
+            for (const row of surveys_in_study) {
+                survey_markup = `<div class="widget">
+                    <a href="/adminhome/study/<%= study_id %>/survey/${row.survey_id}" class="widget_link">
+                        <div class="widget_cont">
+                            <div class="widget_top">
+                                <div class="title"><span class="label"></span>${row.title}</div>
+                                <div class="expiry"><span class="label">Expiry date:&nbsp;</span>${row.expiry_date}</div>
+                            </div>
+                            <div class="info"><span class="label">Description:&nbsp;</span>${row.info}</div>
+                        </div>
+                    </a>
+                </div>`;
+                if (+row.is_round == 1) {
+                    $("#round_side").append(survey_markup);
+                } else {
+                    $("#survey_side").append(survey_markup);
+                }
+            }
+
+            // after wards, if one of the divs is empty we remove it
+            if ($("#round_side").children().length == 1) {
+                $("#round_side").remove();
+            };
+            // after wards, if one of the divs is empty we remove it
+            if ($("#survey_side").children().length == 1) {
+                $("#survey_side").remove();
+            };
+        })
+    </script>
 
 </body>
 
