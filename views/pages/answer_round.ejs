@@ -128,6 +128,7 @@
 
                 // we need to use jquery to get a proper file first
                 file_obj = $.getJSON(`/getfile/ques/${current_ques.ques_id}`, function (data) {
+                    console.log(data);
                     // set the link attribute from the file object
                     $('#file_link').attr('href', data.link);
                     // set the value for the file id in the corresponsing input feild

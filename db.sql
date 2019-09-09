@@ -1,5 +1,5 @@
-create database CS_URG;
-use CS_URG;
+create database new_files;
+use new_files;
 
 CREATE TABLE `Users` (
 	`user_id` INT NOT NULL AUTO_INCREMENT,

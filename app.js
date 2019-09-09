@@ -12,7 +12,7 @@ var dbconn = mysql.createConnection({
     host:'localhost',
     user:'root',
     password:'password',
-    database:'CS_URG'
+    database:'new_files'
 });
 // define the redis client
 var redisClient = redis.createClient();
@@ -373,86 +373,65 @@ app.get('/getfile/ques/:ques_id', async (req, res) =>{
     res.sendStatus(200);
     return;
   }
-  // first we run the query to get any files that have been answered at least once but not enough times
-  response_overlap = 2;
-  parital_query = `select Files.file_id, link, partials.count from (select * from Files_in_Use where ques_id = ${req.params.ques_id} and count < ${response_overlap}) as partials inner join Files on Files.file_id = partials.file_id;`;
-  try{
-    partial_results = await db_call(parital_query);
-  } catch (err) {
-    console.log("error in first query", parital_query);
+  // first we run the query to get any files that have not been used at all for this question
+  fresh_files_query = `select * from Files where Files.file_id not in (select file_id from Files_in_Use where ques_id = ${req.params.ques_id}) and is_active = 1;`;
+  try {
+    fresh_files = await db_call(fresh_files_query);
+  } catch (error) {
+    console.log("error in fresh query", fresh_files_query);
     // the file was not marked inactive, something went wrong
     res.sendStatus(501);
     return;
   }
-  // if there are not enough results(1 is always enough but we do more for randomization), then we get a "fresh" file
-  if (partial_results.length < 5) {
-    fresh_query = `select Files.file_id, link from Files where Files.file_id not in (select file_id from Files_in_Use where ques_id = ${req.params.ques_id} and count <= ${response_overlap});`;
-    try{
-      fresh_results = await db_call(fresh_query);
-    } catch (err) {
-      console.log("error in fresh query", fresh_query);
+  // we now check if there were any rows returned and if there werent, then we do the next query
+  if (fresh_files.length != 0) {
+    // this means there were files in the original table
+    rand_int = Math.floor(Math.random() * (fresh_files.length - 1 - 0 + 1) + 0);
+    selected_row = fresh_files[rand_int];
+    // we have our row and file that we will send back, update its count in the database and return it
+    update_count = `insert into Files_in_Use (file_id, ques_id, count) values (${selected_row.file_id},${req.params.ques_id}, 1);`
+    try {
+      ins_result = await db_call(update_count);
+      // return with the query data
+      res.json(selected_row);
+      return;
+    } catch (error) {
+      console.log("error in insert query");
       // the file was not marked inactive, something went wrong
       res.sendStatus(501);
       return;
     }
-    // if there are no fresh files, then we revert back to the partially done files and send one of those
-    if ( fresh_results.length != 0 ){
-      // pick a random row from the new result
-      rand_int = Math.floor(Math.random() * (fresh_results.length - 1 - 0 + 1) + 0);
-      return_row = fresh_results[rand_int];
-      // insert it into the Files_in_Use table with count = 1;
-      ins_query = `insert into Files_in_Use (file_id, ques_id, count) values (${return_row.file_id}, ${req.params.ques_id}, ${1});`;
-      // wait for this file to be marked in use because we dont want to serve the same file to more people than needed
-      try {
-        insert_res = await db_call(ins_query);
-        // return with the query data
-        res.json(return_row);
-        return;
-      } catch (error) {
-        console.log("error in partial wuery", ins_query);
-        // the file was not marked inactive, something went wrong
-        res.sendStatus(501);
-        return;
-      }
-    } else {
-      // we also wanna check here if the partial query return no files then theres nothing more to give
-      if (partial_results.length == 0){
-        res.sendStatus(422);
-        return;
-      }
-      // there are no more frassh files left so we fall back ot the partial ones
-      // pick a random file from the list and return its info
-      rand_int = Math.floor(Math.random() * (partial_results.length - 1 - 0 + 1) + 0);
-      return_row = partial_results[rand_int];
-      // update its info and add 1 to its count in the Files_in_Use table
-      upd_query = `update Files_in_Use set count = ${ +return_row.count + 1} where file_id = ${return_row.file_id} and ques_id = ${req.params.ques_id};`;
-      // wait for this file to be marked in use because we dont want to serve the same file to more people than needed
-      try {
-        upd_result = await db_call(upd_query);
-        // return with the query data
-        res.json(return_row);
-        return;
-      } catch (error) {
-        console.log("error in updated query");
-        // the file was not marked inactive, something went wrong
-        res.sendStatus(501);
-        return;
-      }
-    }
   } else {
-    // pick a random file from the list and return its info
-    rand_int = Math.floor(Math.random() * (partial_results.length - 1 - 0 + 1) + 0);
-    return_row = partial_results[rand_int];
-    // update its info and add 1 to its count in the Files_in_Use table
-    upd_query = `update Files_in_Use set count = ${ +return_row.count + 1} where file_id = ${return_row.file_id} and ques_id = ${req.params.ques_id};`;
-    // wait for this file to be marked in use because we dont want to serve the same file to more people than needed
+    // if the fresh files query did result in 0 rows then all files have been sent out at least once, so we need to get the
+    // files id from the Files_in_Use table
+    query = `select * from (select * from Files_in_Use where count = (select MIN(count) from Files_in_Use) and file_id not in (select file_id from Responses where user_id = ${req.session.user_id} and ques_id = ${req.params.ques_id})) as possibles inner join Files on possibles.file_id = Files.file_id;`;
     try {
-      upd_result = await db_call(upd_query);
+      files = await db_call(query);
+      console.log(query);
+      console.log(files);
+    } catch (error) {
+      console.log("error in used files query", query);
+      // the file was not marked inactive, something went wrong
+      res.sendStatus(501);
+      return;
+    }
+    // if the used files also return no results, then there are no more files to serve
+    if (files.length == 0) {
+      res.sendStatus(422);
+      return;
+    }
+    // after getting the files, we randomly pick one row from the results
+    rand_int = Math.floor(Math.random() * (files.length - 1 - 0 + 1) + 0);
+    selected_row = files[rand_int];
+    // we have our row and file that we will send back, update its count in the database and return it
+    update_count = `update Files_in_Use set count = ${ +selected_row.count + 1} where file_id = ${selected_row.file_id} and ques_id = ${req.params.ques_id};`;
+    try {
+      upd_result = await db_call(update_count);
       // return with the query data
-      res.json(return_row);
+      res.json(selected_row);
       return;
     } catch (error) {
-      console.log("error in updated wuery");
+      console.log("error in update query", update_count);
       // the file was not marked inactive, something went wrong
       res.sendStatus(501);
       return;
@@ -641,13 +620,14 @@ app.get('/adminhome/study/:study_id/create_round', async (req, res) => {
 });
 
 // this function calculates the ques_count if we want to distribute the files evenly between all users.
+// the default overlap is 2; ie a file will be handed out twice
 async function get_distributed_value() {
   // get the active file count and the active user count
   file_count = await db_call("select COUNT(*) from Files where is_active = 1;");
   user_count = await db_call("select COUNT(*) from Users where is_active = 1;");
   file_count = file_count[0]['COUNT(*)'];
   user_count = user_count[0]['COUNT(*)'];
-  result = Math.ceil(file_count/user_count);
+  result = Math.ceil((file_count * 2)/(user_count - 1));
   // we wanna make sure we dont return infinity or zero as a our ques_count
   if (result == 0 || !isFinite(result)) {
     return 1;
@@ -801,8 +781,11 @@ app.listen(PORT, () => {
  /*
   * have app js take cli arguments for which ports to look for databases on
   * if survey creation fail at any part, send a request to the delete route to clean up any partial inserts
-  * the get_distributed_values() function does not have any repetition overlap for files, need to add that
-  
+  * 
+  * right now file requesting works properly but useres will not be able to get more files untill all files have been given out
+  *   to the same count. If a user requests a file but they have already answered for all the files that have the lowest current 
+  *   count then they will not be given any more files even if they can complete questions for files of the second lowest count.
+  * 
   * updae ui for login and register page maybe
   * test mutiple users with with different users havning completed different surveys
   * docker image
