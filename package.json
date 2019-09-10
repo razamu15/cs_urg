@@ -1,0 +1,29 @@
+{
+  "name": "cs_urg",
+  "version": "1.0.0",
+  "description": "A web app for the University of Toronto Scarborough Computer Science Undergraduate Research Group",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/razamu15/cs_urg.git"
+  },
+  "author": "Muhammad Saad Raza",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/razamu15/cs_urg/issues"
+  },
+  "homepage": "https://github.com/razamu15/cs_urg#readme",
+  "dependencies": {
+    "connect-redis": "^4.0.2",
+    "ejs": "^2.7.1",
+    "express": "^4.17.1",
+    "express-session": "^1.16.2",
+    "got": "^9.6.0",
+    "mysql": "^2.17.1",
+    "redis": "^2.8.0"
+  }
+}
