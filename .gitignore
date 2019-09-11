@@ -3,3 +3,4 @@ sample_sql_queries.txt
 sep.sql
 brackets/
 dump.rdb
+node_mysql.js

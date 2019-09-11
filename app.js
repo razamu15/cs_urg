@@ -7,7 +7,7 @@ const redisStore = require('connect-redis')(session);
 const got = require('got');
 // configurations for all the different things going on in this app
 const config = require('./config');
-
+var SKIP_DELETE_AUTH;
 
 // define databse connection object and connet to the mysql database
 var dbconn = mysql.createConnection({
@@ -560,17 +560,17 @@ app.post('/reset/survey/:survey_id', async (req, res) => {
 })
 
 app.post('/delete/survey/:survey_id', async (req, res) => {
-  console.log(req);
-  console.log("-------------------");
-  console.log(req.session);
-  console.log(req.sessionID);
-  console.log("-------------------");
-
-  // this page is not accessible if not signed in as admin
-  if (req.session.user_id != "admin") {
-    res.sendStatus(401);
-    return;
+  // we will check the variable that will tell us if we wanna check the admin authorization or not.
+  // this is so that we can execute this route internally with out needed session authorization
+  if (!SKIP_DELETE_AUTH) {
+    if (req.session.user_id != "admin") {
+      res.sendStatus(401);
+      return;
+    }  
   }
+  // reset the variable that will skip authentication for this route
+  SKIP_DELETE_AUTH = 0;
+
   // first i remove all the options that are about any questions related to the survey
   option_rem = `delete from Options where ques_id in (select ques_id from Questions where survey_id = ${req.params.survey_id});`;
   // next remove all the questions themselves
@@ -735,7 +735,12 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
     // extract the actual value from the query result array
     survey_id = survey_id[0].survey_id;
   } catch (err) {
-    console.error("Survey id query after creation failed", survey_id_query);
+    SKIP_DELETE_AUTH = 1;
+    got_promise = await got.post(`http://localhost:${config.PORT}/delete/survey/${survey_id}`).then(response => {
+      console.error("survey id query failed, but clean up was succesfull", survey_id_query);
+    }).catch(error => {
+      console.error("survey id query failed and following clean up also failed", error);
+    });
     res.redirect(`/adminhome/study/${req.params.study_id}/`);
     return;
   }
@@ -752,15 +757,22 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
         qcount = 1;
       }
     } else {
-      qcount = each_ques.count;
+      if ( isNaN(each_ques.count) ){
+        qcount = "1";
+      } else {
+        qcount = each_ques.count;
+      };
     }
-    ques_insert = `insert into Questions (ques_type_id, survey_id, title, info, ques_order_num, ques_count values (${each_ques.type}, ${survey_id}, "${each_ques.title}", "${each_ques.info}", ${each_ques.qnum}, ${qcount});`;
+    ques_insert = `insert into Questions (ques_type_id, survey_id, title, info, ques_order_num, ques_count) values (${each_ques.type}, ${survey_id}, "${each_ques.title}", "${each_ques.info}", ${each_ques.qnum}, ${qcount});`;
     // wrap the query in try catch in case the promise is rejected
     try{
       ins_result = await db_call(ques_insert); 
     } catch (err) {
       console.error("Question insert query failed", ques_insert);
-      got_promise = got.post(`http://localhost:${config.PORT}/delete/survey/${survey_id}`).then(response => {
+      // we toggle a variable that will let us do a post request on the delete route without having the properly authorized 
+      // session, because the delete route will skip authentication for a request when this boolean is true
+      SKIP_DELETE_AUTH = 1;
+      got_promise = await got.post(`http://localhost:${config.PORT}/delete/survey/${survey_id}`).then(response => {
         console.error("question creation in survey failed, but clean up was succesfull");
       }).catch(error => {
         console.error("survey creation failed and following clean up also failed", error);
@@ -777,7 +789,9 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
       ques_id = ques_id[0].ques_id;
     } catch (err) {
       console.error("Question id query failed", ques_id_query);
-      got_promise = got.post(`http://localhost:${config.PORT}/delete/survey/${survey_id}`).then(response => {
+      // toggle the skip auth variable for internal reequests
+      SKIP_DELETE_AUTH = 1;
+      got_promise = await got.post(`http://localhost:${config.PORT}/delete/survey/${survey_id}`).then(response => {
         console.error("after failed ques_id query, clean up was succesfull");
       }).catch(error => {
         console.error("ques_id query failed and following clean up also failed", error);
@@ -795,7 +809,9 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
           ins_result = await db_call(opt_insert); 
         } catch (err) {
           console.error("Options insert query failed", ins_result, "for question", each_ques.qnum);
-          got_promise = got.post(`http://localhost:${config.PORT}/delete/survey/${survey_id}`).then(response => {
+          // toggle the skip auth variable for internal reequests
+          SKIP_DELETE_AUTH = 1;
+          got_promise = await got.post(`http://localhost:${config.PORT}/delete/survey/${survey_id}`).then(response => {
             console.error("option creation failed, but clean up for whole survey was succesfull");
           }).catch(error => {
             console.error("survey creation failed and following clean up also failed", error);
