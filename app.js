@@ -4,15 +4,18 @@ const bodyParser = require('body-parser');
 const redis = require('redis');
 const session = require('express-session');
 const redisStore = require('connect-redis')(session);
-const PORT = 3000;
+const got = require('got');
+// configurations for all the different things going on in this app
+const config = require('./config');
 
 
 // define databse connection object and connet to the mysql database
 var dbconn = mysql.createConnection({
     host:'localhost',
-    user:'root',
-    password:'password',
-    database:'new_files'
+    user: config.MYSQL_USER,
+    port: config.MYSQL_PORT,
+    password: config.MYSQL_PASS,
+    database: config.MYSQL_DB
 });
 // define the redis client
 var redisClient = redis.createClient();
@@ -32,9 +35,9 @@ app.use(express.static('static'));
 app.use(session({
   store: new redisStore({
     host: 'localhost', 
-    port: 6379,
+    port: config.REDIS_PORT,
     client: redisClient,
-    ttl: 1200
+    ttl: config.SESSION_TTL
   }),
   secret: "ahhheeeeahlieseeendawger",
   saveUninitialized: false,
@@ -114,8 +117,14 @@ app.post('/login', async (req, res) => {
   } 
 
   // first we run the query on the database to get the relevant information for this user
-  user_query = `select * from Users where email = "${req.body.email}"`;
-  user_result = await db_call(user_query);
+  user_query = `select * from Users where email = "${req.body.email}";`;
+  try {
+    user_result = await db_call(user_query);
+  } catch (error) {
+    console.log("Query to verify login failed", user_query);
+    res.render('pages/login', {message: "Something went wrong, Please try again later"});
+    return;
+  }
   // check if the email was correct so that we actually found a matching row in the db
   if (user_result.length == 0) {
     res.render('pages/login', {message: "Incorrect email"});
@@ -166,7 +175,7 @@ app.post('/register', async (req, res) => {
   try{
     result = await db_call(insert_query);
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.render('pages/register', {message: "Unable to create user, email already in use"});
     return;
   }
@@ -200,7 +209,7 @@ app.get('/userhome', async (req, res) => {
   try{
     active_surveys = await db_call(survey_query);
   } catch (err) {
-    console.log(survey_query, "failed");
+    console.error(survey_query, "failed");
   }
   // finally we render the template with any surveys that have not yet been answered by this user
   res.render('pages/user_home', { available_surveys: active_surveys})
@@ -227,8 +236,10 @@ app.get('/userhome/survey/:survey_id', async (req, res) =>{
     survey = await db_call(survey_query);
     qtypes= await db_call("select * from Question_Types;");
   } catch (err) {
-    console.log(survey_query, "failed");
-    console.log("or", qtypes_query, "failed");
+    console.error(survey_query, "failed");
+    console.error("or", qtypes_query, "failed");
+    res.redirect('/userhome');
+    return;
   }
   
   // now that we have the data that we need from the databse, we will format and categorize it into arrays and objects 
@@ -328,12 +339,12 @@ app.post('/userhome/survey_complete/:survey_id', async (req, res) =>{
     return;
   }
   // we difine and run the query that will mark this survey as completed for this user
-  finish_query = `insert into Completed_Surveys (user_id, survey_id, completion_date, is_round) values (${req.session.user_id}, ${req.params.survey_id}, curdate(), 0);`;
+  finish_query = `insert into Completed_Surveys (user_id, survey_id, completion_date, is_round) values (${req.session.user_id}, ${req.params.survey_id}, now(), 0);`;
   try {
     result = await db_call(finish_query);
     res.sendStatus(200);
   } catch (error) {
-    console.log("query to mark survey completed, failed", finish_query);
+    console.error("query to mark survey completed, failed", finish_query);
     res.sendStatus(501);
   }
 })
@@ -351,12 +362,12 @@ app.post('/userhome/round_complete/:survey_id', async (req, res) =>{
     return;
   }
   // we difine and run the query that will mark this survey as completed for this user
-  finish_query = `insert into Completed_Surveys (user_id, survey_id, completion_date, is_round) values (${req.session.user_id}, ${req.params.survey_id}, curdate(), 1);`;
+  finish_query = `insert into Completed_Surveys (user_id, survey_id, completion_date, is_round) values (${req.session.user_id}, ${req.params.survey_id}, now(), 1);`;
   try {
     result = await db_call(finish_query);
     res.sendStatus(200);
   } catch (error) {
-    console.log("query to mark survey completed, failed", finish_query);
+    console.error("query to record round completion, failed", finish_query);
     res.sendStatus(501);
   }
 })
@@ -378,7 +389,7 @@ app.get('/getfile/ques/:ques_id', async (req, res) =>{
   try {
     fresh_files = await db_call(fresh_files_query);
   } catch (error) {
-    console.log("error in fresh query", fresh_files_query);
+    console.error("error in fresh query:", fresh_files_query);
     // the file was not marked inactive, something went wrong
     res.sendStatus(501);
     return;
@@ -396,7 +407,7 @@ app.get('/getfile/ques/:ques_id', async (req, res) =>{
       res.json(selected_row);
       return;
     } catch (error) {
-      console.log("error in insert query");
+      console.error("error in insert query");
       // the file was not marked inactive, something went wrong
       res.sendStatus(501);
       return;
@@ -407,10 +418,8 @@ app.get('/getfile/ques/:ques_id', async (req, res) =>{
     query = `select * from (select * from Files_in_Use where count = (select MIN(count) from Files_in_Use) and file_id not in (select file_id from Responses where user_id = ${req.session.user_id} and ques_id = ${req.params.ques_id})) as possibles inner join Files on possibles.file_id = Files.file_id;`;
     try {
       files = await db_call(query);
-      console.log(query);
-      console.log(files);
     } catch (error) {
-      console.log("error in used files query", query);
+      console.error("error in used files query:", query);
       // the file was not marked inactive, something went wrong
       res.sendStatus(501);
       return;
@@ -431,7 +440,7 @@ app.get('/getfile/ques/:ques_id', async (req, res) =>{
       res.json(selected_row);
       return;
     } catch (error) {
-      console.log("error in update query", update_count);
+      console.error("error in update query:", update_count);
       // the file was not marked inactive, something went wrong
       res.sendStatus(501);
       return;
@@ -449,7 +458,7 @@ app.get('/adminhome', async (req, res) =>{
   try{
     query_result = await db_call("select * from Studies;");
   } catch (err){
-    console.log("query to get all studies failed", err);
+    console.error("query to get all studies failed", err);
     res.send("something went wrong");
   }
   // here we will list all the studies that are active and use the query to render in the html properly
@@ -466,7 +475,7 @@ app.get('/adminhome/study/:study_id', async (req, res) =>{
   try{
     query_result = await db_call(`select * from Surveys where study_id = ${req.params.study_id};`);
   } catch (err){
-    console.log("query to get all surveys for a study failed", err);
+    console.error("query to get all surveys for a study failed", err);
     res.send("something went wrong");
   }
   res.render("pages/study_view", {study_id : req.params.study_id, surveys: query_result});
@@ -499,7 +508,7 @@ app.get('/adminhome/study/:study_id/survey/:survey_id', async (req, res) =>{
   try{
     query_result = await db_call(`select * from Surveys where survey_id = ${req.params.survey_id};`);
   } catch (err){
-    console.log("query to get details for a survey failed" + err);
+    console.error("query to get details for a survey failed" + err);
     res.send("something went wrong");
   }
   res.render("pages/survey_view", {survey_info : query_result[0], study_id: req.params.study_id, survey_id:req.params.survey_id});
@@ -709,6 +718,7 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
   } catch (err) {
     console.error("Survey creation query failed", survey_insert);
     res.redirect(`/adminhome/study/${req.params.study_id}/`);
+    return;
   }
   // before we can continue we need to get the survey_id that was automatically generated by the db
   // when the survey insert was done because it is needed for the foreign key contraint of the questions
@@ -721,6 +731,7 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
   } catch (err) {
     console.error("Survey id query after creation failed", survey_id_query);
     res.redirect(`/adminhome/study/${req.params.study_id}/`);
+    return;
   }
 
   // since there can be questions we will loop through all of the objects present in the questions array
@@ -743,7 +754,13 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
       ins_result = await db_call(ques_insert); 
     } catch (err) {
       console.error("Question insert query failed", ques_insert);
+      got_promise = got.post(`http://localhost:${PORT}/delete/survey/${survey_id}`).then(response => {
+        console.error("question creation in survey failed, but clean up was succesfull");
+      }).catch(error => {
+        console.error("survey creation failed and following clean up also failed", error);
+      });
       res.redirect(`/adminhome/study/${req.params.study_id}/`);
+      return;
     }
     // while we are dealing with this question we also need to insert the options for this question into the db
     // we run a query on and the unique ques_id of the question we just entered into the database
@@ -754,7 +771,13 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
       ques_id = ques_id[0].ques_id;
     } catch (err) {
       console.error("Question id query failed", ques_id_query);
+      got_promise = got.post(`http://localhost:${PORT}/delete/survey/${survey_id}`).then(response => {
+        console.error("after failed ques_id query, clean up was succesfull");
+      }).catch(error => {
+        console.error("ques_id query failed and following clean up also failed", error);
+      });
       res.redirect(`/adminhome/study/${req.params.study_id}/`);
+      return;
     }
     
     // and now we loop through all the options and check to see if any of them belong to the ques num of this ques
@@ -766,7 +789,13 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
           ins_result = await db_call(opt_insert); 
         } catch (err) {
           console.error("Options insert query failed", ins_result, "for question", each_ques.qnum);
+          got_promise = got.post(`http://localhost:${PORT}/delete/survey/${survey_id}`).then(response => {
+            console.error("option creation failed, but clean up for whole survey was succesfull");
+          }).catch(error => {
+            console.error("survey creation failed and following clean up also failed", error);
+          });
           res.redirect(`/adminhome/study/${req.params.study_id}/`);
+          return;
         }
       }
     }
@@ -774,12 +803,15 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
   res.redirect(`/adminhome/study/${req.params.study_id}/`);
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port 3000`);
+app.listen(config.PORT, () => {
+  console.log(`Server running on port ${config.PORT}`);
 })
 
  /*
-  * have app js take cli arguments for which ports to look for databases on
+  * have a sql things that runs every so often and cleans up any file that had their count increased but no response recorded
+    query will have to be something along the lines of reset file count to the number of rows that file is there for the corres
+    ponding question. THIS can only be done when no one is logged in. 
+
   * if survey creation fail at any part, send a request to the delete route to clean up any partial inserts
   * 
   * right now file requesting works properly but useres will not be able to get more files untill all files have been given out
