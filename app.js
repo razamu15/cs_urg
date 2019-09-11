@@ -636,7 +636,7 @@ async function get_distributed_value() {
   user_count = await db_call("select COUNT(*) from Users where is_active = 1;");
   file_count = file_count[0]['COUNT(*)'];
   user_count = user_count[0]['COUNT(*)'];
-  result = Math.ceil((file_count * 2)/(user_count - 1));
+  result = Math.ceil((file_count * config.FILE_OVERLAP)/(user_count - 1));
   // we wanna make sure we dont return infinity or zero as a our ques_count
   if (result == 0 || !isFinite(result)) {
     return 1;
