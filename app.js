@@ -735,12 +735,15 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
     // extract the actual value from the query result array
     survey_id = survey_id[0].survey_id;
   } catch (err) {
-    SKIP_DELETE_AUTH = 1;
-    got_promise = await got.post(`http://localhost:${config.PORT}/delete/survey/${survey_id}`).then(response => {
-      console.error("survey id query failed, but clean up was succesfull", survey_id_query);
-    }).catch(error => {
-      console.error("survey id query failed and following clean up also failed", error);
-    });
+    console.error("survey id query failed", survey_id_query);
+    // since the id query failed we wont be able to proceed with the rest of the creation so we remove the one row from survey table
+    survey_del = `delete from Surveys where study_id = "${req.params.study_id}" and title = "${survey_info.surv_title}";`;
+    try {
+      hi = await db_call(survey_del);
+      console.error("after survey id query failed, cleanup was succesfull");
+    } catch (error) {
+      console.error("survey clean up also failed ");
+    }
     res.redirect(`/adminhome/study/${req.params.study_id}/`);
     return;
   }
