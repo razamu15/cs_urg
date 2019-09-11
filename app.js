@@ -107,14 +107,14 @@ app.get('/login', (req, res) => {
 // the browser default session which would be an unauthorized user
 app.post('/login', async (req, res) => {
   // special login case for an admin account
-  admin_login = { email: 'admin', password: 'UTSC_CS_admin321!'};
+  admin_login = config.ADMIN_CREDS;
   if (req.body.email == admin_login.email && req.body.password == admin_login.password) {
     // add their info to session which will automatically be stored in redis
     req.session['user_id'] = admin_login.email;
     req.session['email'] = admin_login.email;
     res.redirect('/adminhome');
     return;
-  } 
+  }
 
   // first we run the query on the database to get the relevant information for this user
   user_query = `select * from Users where email = "${req.body.email}";`;
@@ -560,6 +560,12 @@ app.post('/reset/survey/:survey_id', async (req, res) => {
 })
 
 app.post('/delete/survey/:survey_id', async (req, res) => {
+  console.log(req);
+  console.log("-------------------");
+  console.log(req.session);
+  console.log(req.sessionID);
+  console.log("-------------------");
+
   // this page is not accessible if not signed in as admin
   if (req.session.user_id != "admin") {
     res.sendStatus(401);
@@ -748,13 +754,13 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
     } else {
       qcount = each_ques.count;
     }
-    ques_insert = `insert into Questions (ques_type_id, survey_id, title, info, ques_order_num, ques_count) values (${each_ques.type}, ${survey_id}, "${each_ques.title}", "${each_ques.info}", ${each_ques.qnum}, ${qcount});`;
+    ques_insert = `insert into Questions (ques_type_id, survey_id, title, info, ques_order_num, ques_count values (${each_ques.type}, ${survey_id}, "${each_ques.title}", "${each_ques.info}", ${each_ques.qnum}, ${qcount});`;
     // wrap the query in try catch in case the promise is rejected
     try{
       ins_result = await db_call(ques_insert); 
     } catch (err) {
       console.error("Question insert query failed", ques_insert);
-      got_promise = got.post(`http://localhost:${PORT}/delete/survey/${survey_id}`).then(response => {
+      got_promise = got.post(`http://localhost:${config.PORT}/delete/survey/${survey_id}`).then(response => {
         console.error("question creation in survey failed, but clean up was succesfull");
       }).catch(error => {
         console.error("survey creation failed and following clean up also failed", error);
@@ -771,7 +777,7 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
       ques_id = ques_id[0].ques_id;
     } catch (err) {
       console.error("Question id query failed", ques_id_query);
-      got_promise = got.post(`http://localhost:${PORT}/delete/survey/${survey_id}`).then(response => {
+      got_promise = got.post(`http://localhost:${config.PORT}/delete/survey/${survey_id}`).then(response => {
         console.error("after failed ques_id query, clean up was succesfull");
       }).catch(error => {
         console.error("ques_id query failed and following clean up also failed", error);
@@ -789,7 +795,7 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
           ins_result = await db_call(opt_insert); 
         } catch (err) {
           console.error("Options insert query failed", ins_result, "for question", each_ques.qnum);
-          got_promise = got.post(`http://localhost:${PORT}/delete/survey/${survey_id}`).then(response => {
+          got_promise = got.post(`http://localhost:${config.PORT}/delete/survey/${survey_id}`).then(response => {
             console.error("option creation failed, but clean up for whole survey was succesfull");
           }).catch(error => {
             console.error("survey creation failed and following clean up also failed", error);
