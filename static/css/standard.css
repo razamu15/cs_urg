@@ -120,3 +120,16 @@ body {
     font-size: 1.5vmax;
     line-height: 18px;
 }
+
+.action_btn {
+    border-radius: 6px;
+    border-color: #425a7b;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1.5vmax;
+    padding: 5px;
+    background-color: #425a7b;
+    color: white;
+    transition: box-shadow 0.5s ease;
+    text-decoration: none;
+}

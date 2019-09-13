@@ -833,11 +833,11 @@ app.listen(config.PORT, () => {
 })
 
  /*
+  * an interface to manage users, deactivate and delete them
+  
   * have a sql things that runs every so often and cleans up any file that had their count increased but no response recorded
     query will have to be something along the lines of reset file count to the number of rows that file is there for the corres
     ponding question. THIS can only be done when no one is logged in. 
-
-  * if survey creation fail at any part, send a request to the delete route to clean up any partial inserts
   * 
   * right now file requesting works properly but useres will not be able to get more files untill all files have been given out
   *   to the same count. If a user requests a file but they have already answered for all the files that have the lowest current 

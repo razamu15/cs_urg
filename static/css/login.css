@@ -1,0 +1,9 @@
+input{
+    margin: 10px;
+    padding: 5px;
+}
+
+#agreement{
+    display: block;
+    width: 100%;
+}
