@@ -121,7 +121,7 @@ app.post('/login', async (req, res) => {
   try {
     user_result = await db_call(user_query);
   } catch (error) {
-    console.log("Query to verify login failed", user_query);
+    console.error("Query to verify login failed", user_query);
     res.render('pages/login', {message: "Something went wrong, Please try again later"});
     return;
   }
@@ -175,7 +175,7 @@ app.post('/register', async (req, res) => {
   try{
     result = await db_call(insert_query);
   } catch (err) {
-    console.error(err);
+    console.error("insert user query failed, because duplicate email.", insert_query);
     res.render('pages/register', {message: "Unable to create user, email already in use"});
     return;
   }
@@ -843,7 +843,6 @@ app.listen(config.PORT, () => {
   *   to the same count. If a user requests a file but they have already answered for all the files that have the lowest current 
   *   count then they will not be given any more files even if they can complete questions for files of the second lowest count.
   * 
-  * updae ui for login and register page maybe
   * test mutiple users with with different users havning completed different surveys
   * docker image
   * */
