@@ -106,19 +106,19 @@ body {
 }
 
 #intro-img {
-    height: 250px;
+    height: 70%;
     width: 40%;
     margin: 10 10;
 }
 
-#body-para {
-    display: flex;
+.body-para {
+    /* display: flex;
+    align-items: center; */
+    margin: 10px;
     width: auto;
     height: auto;
-    align-items: center;
-    margin: 0 0 0 15;
-    font-size: 1.5vmax;
-    line-height: 18px;
+    font-size: 1.3vmax;
+    line-height: 22px;
 }
 
 .action_btn {
