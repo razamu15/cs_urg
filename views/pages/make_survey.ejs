@@ -53,7 +53,7 @@
 
     <div id="form_wrap">
 
-        <form action="/adminhome/study/<%= study_id %>/create_survey" method="POST"
+        <form id="questions_main" action="/adminhome/study/<%= study_id %>/create_survey" method="POST"
             enctype='application/x-www-form-urlencoded'>
             <h2 class="sub-header">Survey Info</h2>
             <fieldset name="survey_data" id="survey_data">
@@ -69,10 +69,7 @@
             <br>
             <div name="questions" id="questions">
                 
-
             </div>
-            <input type="submit" value="Submit" class="action_btn">
-            <button type="button" id="reset_survey" class="action_btn">Reset</button>
         </form>
 
         <!-- this form is separate from the actualy survey cration form and is only used for creating a ques,
@@ -88,6 +85,10 @@
             <br><br>
             <input type="submit" value="Create New Ques" class="action_btn">
         </form>
+
+        <input type="submit" value="Submit" class="action_btn" form="questions_main">
+        <button type="button" id="reset_survey" class="action_btn">Reset</button>
+
     </div>
     </div>
 

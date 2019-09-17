@@ -70,6 +70,21 @@ function db_call(query_str){
   })
 };
 
+// this function calculates the ques_count if we want to distribute the files evenly between all users.
+async function get_distributed_value() {
+  // get the active file count and the active user count
+  file_count = await db_call("select COUNT(*) from Files where is_active = 1;");
+  user_count = await db_call("select COUNT(*) from Users where is_active = 1;");
+  file_count = file_count[0]['COUNT(*)'];
+  user_count = user_count[0]['COUNT(*)'];
+  result = Math.ceil((file_count * config.DIST_OVERLAP)/(user_count - 1));
+  // we wanna make sure we dont return infinity or zero as a our ques_count
+  if (result == 0 || !isFinite(result)) {
+    return 1;
+  } else {
+    return result; 
+  }
+}
 
 // ###########################################################################
 // ---------------------------------------------------------------------------
@@ -633,23 +648,6 @@ app.get('/adminhome/study/:study_id/create_round', async (req, res) => {
   }
   res.render('pages/make_round', { ques_types_query : query_result, study_id: req.params.study_id });
 });
-
-// this function calculates the ques_count if we want to distribute the files evenly between all users.
-// the default overlap is 2; ie a file will be handed out twice
-async function get_distributed_value() {
-  // get the active file count and the active user count
-  file_count = await db_call("select COUNT(*) from Files where is_active = 1;");
-  user_count = await db_call("select COUNT(*) from Users where is_active = 1;");
-  file_count = file_count[0]['COUNT(*)'];
-  user_count = user_count[0]['COUNT(*)'];
-  result = Math.ceil((file_count * config.FILE_OVERLAP)/(user_count - 1));
-  // we wanna make sure we dont return infinity or zero as a our ques_count
-  if (result == 0 || !isFinite(result)) {
-    return 1;
-  } else {
-    return result; 
-  }
-}
 
 app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
   // this page is not accessible if not signed in as admin

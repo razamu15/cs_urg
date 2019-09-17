@@ -1,5 +1,5 @@
-create database new_files;
-use new_files;
+CREATE DATABASE cs_urg;
+USE cs_urg;
 
 CREATE TABLE `Users` (
 	`user_id` INT NOT NULL AUTO_INCREMENT,
@@ -33,8 +33,7 @@ CREATE TABLE `Surveys` (
 	`expiry_date` DATE,
 	`is_published` BOOLEAN NOT NULL,
 	`is_round` BOOLEAN NOT NULL,
-	FOREIGN KEY(`study_id`) 
-	    REFERENCES `Studies`(`study_id`),
+	FOREIGN KEY(`study_id`) REFERENCES `Studies`(`study_id`),
 	UNIQUE KEY (`study_id`,`title`),
 	PRIMARY KEY(`survey_id`)
 );
