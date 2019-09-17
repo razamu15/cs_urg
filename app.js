@@ -473,8 +473,10 @@ app.get('/adminhome', async (req, res) =>{
   try{
     query_result = await db_call("select * from Studies;");
   } catch (err){
+    // something is very badly wrong because we cant even display the home page, so we signout the user and show that a msg
     console.error("query to get all studies failed", err);
-    res.send("something went wrong");
+    req.session.destroy();
+    res.redirect('/');
   }
   // here we will list all the studies that are active and use the query to render in the html properly
   res.render("pages/admin_home", { studies:query_result });
@@ -491,7 +493,7 @@ app.get('/adminhome/study/:study_id', async (req, res) =>{
     query_result = await db_call(`select * from Surveys where study_id = ${req.params.study_id};`);
   } catch (err){
     console.error("query to get all surveys for a study failed", err);
-    res.send("something went wrong");
+    res.redirect("/adminhome");
   }
   res.render("pages/study_view", {study_id : req.params.study_id, surveys: query_result});
 })
@@ -524,7 +526,7 @@ app.get('/adminhome/study/:study_id/survey/:survey_id', async (req, res) =>{
     query_result = await db_call(`select * from Surveys where survey_id = ${req.params.survey_id};`);
   } catch (err){
     console.error("query to get details for a survey failed" + err);
-    res.send("something went wrong");
+    res.redirect(`/adminhome/study/${req.params.study_id}`);
   }
   res.render("pages/survey_view", {survey_info : query_result[0], study_id: req.params.study_id, survey_id:req.params.survey_id});
 })
