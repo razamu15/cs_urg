@@ -9,9 +9,10 @@ const got = require('got');
 const config = require('./config');
 var SKIP_DELETE_AUTH;
 
-// define databse connection object and connet to the mysql database
-var dbconn = mysql.createConnection({
-    host:'localhost',
+// define databse connection pool object
+var conn_pool = mysql.createPool({
+    connectionLimit: config.MYSQL_POOL_SIZE,
+    host: config.MYSQL_HOST,
     user: config.MYSQL_USER,
     port: config.MYSQL_PORT,
     password: config.MYSQL_PASS,
@@ -34,7 +35,7 @@ app.use(express.static('static'));
 // define and configure redis as our session store
 app.use(session({
   store: new redisStore({
-    host: 'localhost', 
+    host: config.REDIS_HOST, 
     port: config.REDIS_PORT,
     client: redisClient,
     ttl: config.SESSION_TTL
@@ -44,22 +45,13 @@ app.use(session({
   resave: false
 }));
 
-// connect to the MySQL database
-dbconn.connect(function(err) {
-  if (err) {
-    console.error('error connecting: ' + err.stack);
-  } else {
-    console.log('connected to mySQL');
-  }
-});
-
 
 // function that will return a promise you can call await on to wait
 // untill the database query is resolved so you can then work with the data
 function db_call(query_str){
   return new Promise( (resolve, reject) => {
     // execute a sql query to show all users
-    dbconn.query(query_str, function (err, result) {
+    conn_pool.query(query_str, function (err, result) {
     // if query failed then reject promise otherwise resolve with the data
     if (err) {
       reject("query failed");
