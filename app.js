@@ -49,9 +49,6 @@ app.use(session({
 // function that will return a promise you can call await on to wait
 // untill the database query is resolved so you can then work with the data
 function db_call(query_str){
-  
-  console.log(query_str);
-
   return new Promise( (resolve, reject) => {
     // execute a sql query to show all users
     conn_pool.query(query_str, function (err, result) {
