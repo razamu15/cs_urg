@@ -128,7 +128,7 @@
             if (ques_features.has_file) {
                 // we define and add the markup to the html and then send the ajax request which will asynchronously
                 // fill in the href part and the input value part with correct values later
-                file_markup = '<a id="file_link" href="file-link-fill" target="_blank"><button class="action_btn">File link</button></a>';
+                file_markup = '<a id="file_link" href="file-link-fill" target="_blank"><button class="action_btn" type="button">File link</button></a>';
                 file_markup += '<input type="text" id="file_id" name="file_id" value="file-id-fill" style="display: none">';
 
                 // we need to use jquery to get a proper file first

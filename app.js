@@ -171,7 +171,7 @@ app.get('/register', (req, res) => {
     res.redirect('/userhome');
   } else {
     // show them the login page
-    res.render('pages/register', {message: "Please enter an email and password to register"});
+    res.render('pages/register', {message: "Please enter an email and password to register", path_to_text: config.CONSENT_TEXT});
   }
 })
 
@@ -797,6 +797,5 @@ app.listen(config.PORT, () => {
   *   to the same count. If a user requests a file but they have already answered for all the files that have the lowest current 
   *   count then they will not be given any more files even if they can complete questions for files of the second lowest count.
   * 
-  * test mutiple users with with different users havning completed different surveys
-  * docker image
+  * delete row cascade
   * */

@@ -5,5 +5,6 @@ input{
 
 #agreement{
     display: block;
+    height: 250px;
     width: 100%;
 }

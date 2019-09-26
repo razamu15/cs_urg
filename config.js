@@ -12,5 +12,8 @@ config.REDIS_HOST = 'localhost';
 config.SESSION_TTL = 1200;
 config.DIST_OVERLAP = 2;
 config.ADMIN_CREDS = { email: 'admin', password: 'UTSC_CS_admin321!' };
+// this variable is the path to the consent document that needs to be displayed when registering
+// NOTE: path is relative to being inside the static directory of the project
+config.CONSENT_TEXT = "/text/Consent_Form.pdf"
 
 module.exports = config;
