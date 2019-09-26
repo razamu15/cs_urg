@@ -128,7 +128,7 @@ app.post('/login', async (req, res) => {
   try {
     user_result = await db_call(user_query);
   } catch (error) {
-    console.error("Query to verify login failed", user_query);
+    console.log("Query to verify login failed", user_query);
     res.render('pages/login', {message: "Something went wrong, Please try again later"});
     return;
   }
@@ -182,8 +182,8 @@ app.post('/register', async (req, res) => {
   try{
     result = await db_call(insert_query);
   } catch (err) {
-    console.error("insert user query failed, because duplicate email.", insert_query);
-    res.render('pages/register', {message: "Unable to create user, email already in use"});
+    console.log("insert user query failed, because duplicate email.", insert_query);
+    res.render('pages/register', {message: "Unable to create user, email already in use", path_to_text: config.CONSENT_TEXT});
     return;
   }
   // if the query is ok then the user was creted and we redirect hem to the login page
@@ -216,7 +216,7 @@ app.get('/userhome', async (req, res) => {
   try{
     active_surveys = await db_call(survey_query);
   } catch (err) {
-    console.error(survey_query, "failed");
+    console.log(survey_query, "failed");
   }
   // finally we render the template with any surveys that have not yet been answered by this user
   res.render('pages/user_home', { available_surveys: active_surveys})
@@ -243,8 +243,8 @@ app.get('/userhome/survey/:survey_id', async (req, res) =>{
     survey = await db_call(survey_query);
     qtypes= await db_call("select * from Question_Types;");
   } catch (err) {
-    console.error(survey_query, "failed");
-    console.error("or", qtypes_query, "failed");
+    console.log(survey_query, "failed");
+    console.log("or", qtypes_query, "failed");
     res.redirect('/userhome');
     return;
   }
@@ -328,7 +328,7 @@ app.post('/userhome/survey/:survey_id', async (req, res) =>{
     ins_result = await db_call(insert_query);
     res.sendStatus(200);
   } catch (err) {
-    console.error("failed to insert response in the db", insert_query);
+    console.log("failed to insert response in the db", insert_query);
     res.sendStatus(501);
   }
 })
@@ -351,7 +351,7 @@ app.post('/userhome/survey_complete/:survey_id', async (req, res) =>{
     result = await db_call(finish_query);
     res.sendStatus(200);
   } catch (error) {
-    console.error("query to mark survey completed, failed", finish_query);
+    console.log("query to mark survey completed, failed", finish_query);
     res.sendStatus(501);
   }
 })
@@ -374,7 +374,7 @@ app.post('/userhome/round_complete/:survey_id', async (req, res) =>{
     result = await db_call(finish_query);
     res.sendStatus(200);
   } catch (error) {
-    console.error("query to record round completion, failed", finish_query);
+    console.log("query to record round completion, failed", finish_query);
     res.sendStatus(501);
   }
 })
@@ -396,7 +396,7 @@ app.get('/getfile/ques/:ques_id', async (req, res) =>{
   try {
     fresh_files = await db_call(fresh_files_query);
   } catch (error) {
-    console.error("error in fresh query:", fresh_files_query);
+    console.log("error in fresh query:", fresh_files_query);
     // the file was not marked inactive, something went wrong
     res.sendStatus(501);
     return;
@@ -414,7 +414,7 @@ app.get('/getfile/ques/:ques_id', async (req, res) =>{
       res.json(selected_row);
       return;
     } catch (error) {
-      console.error("error in insert query");
+      console.log("error in insert query");
       // the file was not marked inactive, something went wrong
       res.sendStatus(501);
       return;
@@ -426,7 +426,7 @@ app.get('/getfile/ques/:ques_id', async (req, res) =>{
     try {
       files = await db_call(query);
     } catch (error) {
-      console.error("error in used files query:", query);
+      console.log("error in used files query:", query);
       // the file was not marked inactive, something went wrong
       res.sendStatus(501);
       return;
@@ -447,7 +447,7 @@ app.get('/getfile/ques/:ques_id', async (req, res) =>{
       res.json(selected_row);
       return;
     } catch (error) {
-      console.error("error in update query:", update_count);
+      console.log("error in update query:", update_count);
       // the file was not marked inactive, something went wrong
       res.sendStatus(501);
       return;
@@ -466,7 +466,7 @@ app.get('/adminhome', async (req, res) =>{
     query_result = await db_call("select * from Studies;");
   } catch (err){
     // something is very badly wrong because we cant even display the home page, so we signout the user and show that a msg
-    console.error("query to get all studies failed", err);
+    console.log("query to get all studies failed", err);
     req.session.destroy();
     res.redirect('/');
   }
@@ -484,7 +484,7 @@ app.get('/adminhome/study/:study_id', async (req, res) =>{
   try{
     query_result = await db_call(`select * from Surveys where study_id = ${req.params.study_id};`);
   } catch (err){
-    console.error("query to get all surveys for a study failed", err);
+    console.log("query to get all surveys for a study failed", err);
     res.redirect("/adminhome");
   }
   res.render("pages/study_view", {study_id : req.params.study_id, surveys: query_result});
@@ -502,7 +502,7 @@ app.post('/adminhome/create_study', async (req, res) => {
   try {
     ins_result = await db_call(study_query);
   } catch (err) {
-    console.error("failed to create new study", study_query);
+    console.log("failed to create new study", study_query);
   }
   res.redirect('/adminhome');
 })
@@ -517,7 +517,7 @@ app.get('/adminhome/study/:study_id/survey/:survey_id', async (req, res) =>{
   try{
     query_result = await db_call(`select * from Surveys where survey_id = ${req.params.survey_id};`);
   } catch (err){
-    console.error("query to get details for a survey failed" + err);
+    console.log("query to get details for a survey failed" + err);
     res.redirect(`/adminhome/study/${req.params.study_id}`);
   }
   res.render("pages/survey_view", {survey_info : query_result[0], study_id: req.params.study_id, survey_id:req.params.survey_id});
@@ -541,7 +541,7 @@ app.post('/adminhome/study/:study_id/survey/:survey_id', async (req, res) =>{
   try{
     result = await db_call(update_query);
   } catch (err) {
-    console.error(update_query, "failed");
+    console.log(update_query, "failed");
   }
   res.redirect(`/adminhome/study/${req.params.study_id}/survey/${req.params.survey_id}`);
 })
@@ -563,7 +563,7 @@ app.post('/reset/survey/:survey_id', async (req, res) => {
     result = await Promise.all([db_call(answers_rem), db_call(files_rem), db_call(completes_rem)]);
     res.sendStatus(200);
   } catch (err) {
-    console.error("survey reset failed");
+    console.log("survey reset failed");
     res.sendStatus(501);
   }
 })
@@ -597,13 +597,13 @@ app.post('/delete/survey/:survey_id', async (req, res) => {
     res.sendStatus(200);
   } catch (err) {
     // we print out which db call failed
-    console.error("Failed to remove the survey properly");
+    console.log("Failed to remove the survey properly");
     if ( fail_counter == 0 ) {
-      console.error(option_rem, "failed");
+      console.log(option_rem, "failed");
     } else if (fail_counter == 1) {
-      console.error(ques_rem, "failed");
+      console.log(ques_rem, "failed");
     } else {
-      console.error(surv_rem, "failed");
+      console.log(surv_rem, "failed");
     }
     res.sendStatus(501);
   }
@@ -619,7 +619,7 @@ app.get('/adminhome/study/:study_id/create_survey', async (req, res) => {
   try{
     query_result = await db_call("select * from Question_Types;");
   } catch (err){
-    console.error("question Types query failed" + err);
+    console.log("question Types query failed" + err);
     res.redirect(`/adminhome/study/${req.params.study_id}/`);
     return;
   }
@@ -636,7 +636,7 @@ app.get('/adminhome/study/:study_id/create_round', async (req, res) => {
   try{
     query_result = await db_call("select * from Question_Types where has_file = 1;");
   } catch (err){
-    console.error("question Types query failed" + err);
+    console.log("question Types query failed" + err);
     res.redirect(`/adminhome/study/${req.params.study_id}/`);
     return;
   }
@@ -690,7 +690,7 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
     } else {
       // this is data for a ques
       // if this data is for a new ques than the current one, then we will make a new entry in the array
-      ques_data = data_key.split("_")
+      ques_data = data_key.split("_");
       ques_num = +ques_data[0];
       data_label = ques_data[1];
       if ( ques_num != cur_ques ) {
@@ -716,7 +716,7 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
     ins_result = await db_call(survey_insert);
     survey_id = ins_result.insertId;
   } catch (err) {
-    console.error("Survey creation query failed", survey_insert);
+    console.log("Survey creation query failed", survey_insert);
     res.redirect(`/adminhome/study/${req.params.study_id}/`);
     return;
   }
@@ -728,7 +728,7 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
       try {
         qcount = await get_distributed_value();
       } catch (err) {
-        console.error("couldnt find distribute value, defaulting to 1");
+        console.log("couldnt find distribute value, defaulting to 1");
         qcount = 1;
       }
     } else {
@@ -744,14 +744,14 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
       ins_result = await db_call(ques_insert);
       ques_id = ins_result.insertId;
     } catch (err) {
-      console.error("Question insert query failed", ques_insert);
+      console.log("Question insert query failed", ques_insert);
       // we toggle a variable that will let us do a post request on the delete route without having the properly authorized 
       // session, because the delete route will skip authentication for a request when this boolean is true
       SKIP_DELETE_AUTH = 1;
       got_promise = await got.post(`http://localhost:${config.PORT}/delete/survey/${survey_id}`).then(response => {
-        console.error("question creation in survey failed, but clean up was succesfull");
+        console.log("question creation in survey failed, but clean up was succesfull");
       }).catch(error => {
-        console.error("survey creation failed and following clean up also failed", error);
+        console.log("survey creation failed and following clean up also failed", error);
       });
       res.redirect(`/adminhome/study/${req.params.study_id}/`);
       return;
@@ -765,13 +765,13 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
         try{
           ins_result = await db_call(opt_insert); 
         } catch (err) {
-          console.error("Options insert query failed", ins_result, "for question", each_ques.qnum);
+          console.log("Options insert query failed", ins_result, "for question", each_ques.qnum);
           // toggle the skip auth variable for internal reequests
           SKIP_DELETE_AUTH = 1;
           got_promise = await got.post(`http://localhost:${config.PORT}/delete/survey/${survey_id}`).then(response => {
-            console.error("option creation failed, but clean up for whole survey was succesfull");
+            console.log("option creation failed, but clean up for whole survey was succesfull");
           }).catch(error => {
-            console.error("survey creation failed and following clean up also failed", error);
+            console.log("survey creation failed and following clean up also failed", error);
           });
           res.redirect(`/adminhome/study/${req.params.study_id}/`);
           return;
