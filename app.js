@@ -652,9 +652,6 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
     res.redirect('/');
     return;
   }
-
-  console.log(req.body);
-
   // we will first loop through the raw form data and sort it into arrays and objects for
   // then once we have our data organized by questions and options, we run our sql queries
   // by formatting strings with the data
@@ -726,9 +723,6 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
     res.redirect(`/adminhome/study/${req.params.study_id}/`);
     return;
   }
-
-  console.log(ques_array);
-
   // since there can be questions we will loop through all of the objects present in the questions array
   for (const each_ques of ques_array) {
     // before we can insert the question, if the count is "distribute" we first need to calculate the number
