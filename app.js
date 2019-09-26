@@ -49,6 +49,9 @@ app.use(session({
 // function that will return a promise you can call await on to wait
 // untill the database query is resolved so you can then work with the data
 function db_call(query_str){
+  
+  console.log(query_str);
+
   return new Promise( (resolve, reject) => {
     // execute a sql query to show all users
     conn_pool.query(query_str, function (err, result) {
@@ -649,6 +652,9 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
     res.redirect('/');
     return;
   }
+
+  console.log(req.body);
+
   // we will first loop through the raw form data and sort it into arrays and objects for
   // then once we have our data organized by questions and options, we run our sql queries
   // by formatting strings with the data
@@ -690,8 +696,9 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
     } else {
       // this is data for a ques
       // if this data is for a new ques than the current one, then we will make a new entry in the array
-      ques_num = +data_key[0];
-      data_label = data_key.split("_")[1];
+      ques_data = data_key.split("_")
+      ques_num = +ques_data[0];
+      data_label = ques_data[1];
       if ( ques_num != cur_ques ) {
         // append a new object for this question to the questions array
         ques_array.push({});
@@ -720,6 +727,8 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
     return;
   }
 
+  console.log(ques_array);
+
   // since there can be questions we will loop through all of the objects present in the questions array
   for (const each_ques of ques_array) {
     // before we can insert the question, if the count is "distribute" we first need to calculate the number
@@ -732,7 +741,7 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
         qcount = 1;
       }
     } else {
-      if ( isNaN(each_ques.count) ){
+      if ( isNaN(each_ques.count) || each_ques.count == "" ){
         qcount = "1";
       } else {
         qcount = each_ques.count;
