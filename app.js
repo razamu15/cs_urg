@@ -673,7 +673,9 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
       // we create a new object and fill it in with the relevant info for this option
       op_info = {};
       // we also store the ques number so that i can find the actual ques_id foreign key later on
-      op_info["qnum"] = +data_key[0];
+      op_data = data_key.split("_");
+      ques_num = +op_data[0];
+      op_info["qnum"] = ques_num;
       // add the label for this option
       op_info["label"] = element;
       // there are 2 types of options we need to deal with here
