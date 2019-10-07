@@ -89,6 +89,8 @@
         <input type="submit" value="Submit" class="action_btn" form="questions_main">
         <button type="button" id="reset_survey" class="action_btn">Reset</button>
 
+        <form id="garbage" style="display: none"></form>
+
     </div>
     </div>
 
@@ -151,6 +153,7 @@
                         <ul id="${qnum + '_opts'}">
                             <button type="button" id="create_opts" >Create New Option</button>
                             <button type="button" id="create_text_opts" >Create Text Entry Option</button>
+                            <input type="checkbox" id="likert" form="garbage"> LIKERT Scale
                         </ul>
                         <!-- this extra save button will stop the question from being editable anymore
                             and it will also make the create option button and itself dissappear for this question-->
@@ -214,6 +217,33 @@
                 opnum += 1;
             });
 
+            $(document).on('click', "#likert", function () {
+                // upon click we look at if the checkbox is check or not
+                if ($('#likert').prop("checked") == true) {
+                    // then we want to make likert scale options so first we empty out the list of options
+                    $(`#${qnum + '_opts'}`).children("li").remove();
+                    // then add the options we want
+                    strongly_agree = `<li><input type="text" name="${qnum + '_op_' + opnum}" id="${qnum + '_op_' + opnum}" value="strongly agree"></li>`;
+                    opnum += 1;
+                    agree = `<li><input type="text" name="${qnum + '_op_' + opnum}" id="${qnum + '_op_' + opnum}" value="agree"></li>`;
+                    opnum += 1;
+                    neutral = `<li><input type="text" name="${qnum + '_op_' + opnum}" id="${qnum + '_op_' + opnum}" value="neutral"></li>`;
+                    opnum += 1;
+                    disagree = `<li><input type="text" name="${qnum + '_op_' + opnum}" id="${qnum + '_op_' + opnum}" value="disagree"></li>`;
+                    opnum += 1;
+                    strongly_disagree = `<li><input type="text" name="${qnum + '_op_' + opnum}" id="${qnum + '_op_' + opnum}" value="strongly disagree"></li>`;
+                    opnum += 1;
+                    decline = `<li><input type="text" name="${qnum + '_op_' + opnum}" id="${qnum + '_op_' + opnum}" value="decline to answer"></li>`;
+                    opnum += 1;
+                    likert_opts = [strongly_agree, agree, neutral, disagree, strongly_disagree, decline];
+                    // add it to the dom in order
+                    $(`#${qnum + '_opts'}`).prepend(likert_opts);
+                } else {
+                    // remove all the likert options that are there and set the opnum back accordingly
+                    $(`#${qnum + '_opts'}`).children("li").remove();
+                    opnum = 0;
+                }
+            });
         })
     </script>
 </body>

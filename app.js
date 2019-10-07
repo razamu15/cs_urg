@@ -115,10 +115,10 @@ app.get('/login', (req, res) => {
 app.post('/login', async (req, res) => {
   // special login case for an admin account
   admin_login = config.ADMIN_CREDS;
-  if (req.body.email == admin_login.email && req.body.password == admin_login.password) {
+  if (admin_login.email.includes(req.body.email) && admin_login.password.includes(req.body.password)) {
     // add their info to session which will automatically be stored in redis
-    req.session['user_id'] = admin_login.email;
-    req.session['email'] = admin_login.email;
+    req.session['user_id'] = "admin";
+    req.session['email'] = req.body.email;
     res.redirect('/adminhome');
     return;
   }
@@ -212,7 +212,7 @@ app.get('/userhome', async (req, res) => {
     user_id = req.session.user_id;
   }
   // first we gott run the query for all the surveys that are active ie(publised and not expired)
-  survey_query = `select * from Surveys where survey_id not in (select survey_id from Completed_Surveys where user_id = ${user_id} and is_round = 0) and expiry_date > curdate() and is_published = 1;`;
+  survey_query = `select * from Surveys where survey_id not in (select survey_id from Completed_Surveys where user_id = "${user_id}" and is_round = 0) and expiry_date > curdate() and is_published = 1;`;
   try{
     active_surveys = await db_call(survey_query);
   } catch (err) {
