@@ -152,6 +152,49 @@ app.post('/login', async (req, res) => {
   }
 })
 
+app.get('/req_reset', (req, res) => {
+  if (req.session.user_id == 'admin') {
+    res.redirect('/adminhome');  
+  } else if (req.session.user_id) {
+    res.redirect('/userhome');  
+  } else {
+    res.render('pages/request_reset');
+  }
+})
+
+app.post('/req_reset', async (req, res) => {
+  if (req.session.user_id == 'admin') {
+    res.redirect('/adminhome');
+    return;
+  } else if (req.session.user_id) {
+    res.redirect('/userhome');
+    return;
+  }
+  // we create a hash from the email form feild and time stamp
+
+  // insert the hash and the email pair into the reset passwords sql table
+
+  // check return of the query, if there was a foreign key volation the user email never existed in the first place
+
+  // send email with the hash link and re render the same page but with message for success or failure for sending email
+})
+
+app.get('/resetpass/:reset_hash', async (req, res) => {
+  // lookup the hash given as the parameter in our database
+
+  // if it doesnt exist then return error, ow
+  
+  // render the reset_password page
+})
+
+app.post('resetpass/:reset_hash', async (req, res) => {
+  // lookup the hash given as the parameter in our database
+
+  // if it doesnt exist then return error, ow
+  
+  // update users table and set the password to the given password feild from the form
+})
+
 app.get('/logout', (req, res) =>{
   // check if there is a session in the first place to destory 
   if (req.session.user_id) {
@@ -722,7 +765,7 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
     res.redirect(`/adminhome/study/${req.params.study_id}/`);
     return;
   }
-  // since there can be questions we will loop through all of the objects present in the questions array
+  // since there can be questions we will loop through all of the objects present in the ques-tions array
   for (const each_ques of ques_array) {
     // before we can insert the question, if the count is "distribute" we first need to calculate the number
     if (each_ques.count == "distribute") {

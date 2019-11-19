@@ -4,7 +4,7 @@
     <link href="https://fonts.googleapis.com/css?family=Ubuntu" rel="stylesheet">
     <link rel="stylesheet" href="/css/standard.css">
     <link rel="stylesheet" href="/css/login.css">
-    <title>Login</title>
+    <title>Reset Password</title>
 </head>
 
 <body>
@@ -12,15 +12,14 @@
     <div id="content">
 
             <div id="pg-cont">
-                <h2 class="sub-header">Login</h2>
+                <h2 class="sub-header">Reset Password</h2>
                 <%= message %>
-                <form action="/login" method="POST">
+                <form action="/send_reset" method="POST">
                     <input type="text" name="email" id="email_input" placeholder="Email"><br>
-                    <input type="password" name="password" id="pass_input" placeholder="Password"><br>
                     <input type="submit" value="submit">
                 </form>
                 <a href="/register" class="action_btn">Register</a>
-                <a href="/register" class="action_btn">Reset Password</a>
+                <a href="/login" class="action_btn">Login</a>
             </div>
     
         </div>
