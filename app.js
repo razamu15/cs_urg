@@ -171,7 +171,8 @@ app.post('/req_reset', async (req, res) => {
     return;
   }
   // we create a hash from the email form feild and time stamp
-
+  email = req.body.email;
+  time_stamp = Date.now()
   // insert the hash and the email pair into the reset passwords sql table
 
   // check return of the query, if there was a foreign key volation the user email never existed in the first place
