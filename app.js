@@ -161,7 +161,7 @@ app.get('/req_reset', (req, res) => {
   } else if (req.session.user_id) {
     res.redirect('/userhome');  
   } else {
-    res.render('pages/request_reset');
+    res.render('pages/request_reset', {message:""});
   }
 })
 
@@ -184,13 +184,13 @@ app.post('/req_reset', async (req, res) => {
     return;
   }
   // check if the email was correct so that we actually found a matching row in the db
-  if (user_result.length == 0) {
+  if (validity.length == 0) {
     res.render('pages/request_reset', {message: "Invalid email address"});
     return;
   }
   time_stamp = String(Date.now());
   // we create a hash from the email form feild and time stamp
-  link_key = bcrypt.hashSync(time_stamp + email + time_stamp, "manz got a 20 killstreak in cod the other day ehh")
+  link_key = bcrypt.hashSync(time_stamp + email + time_stamp, 4);
   // insert the hash and the email pair into the reset passwords sql table
   insert_hash = `insert into Reset_Pass values ("${link_key}", "${email}", "${Date.now() + (config.RESET_LINK_TTL * 60000)}");`;
   try {
@@ -201,7 +201,7 @@ app.post('/req_reset', async (req, res) => {
     return;
   }
   // send email with the hash link and re render the same page but with message for success or failure for sending email
-  reset_link = `https://tracademic.utsc.utoronto.ca/resetpass/${link_key}`;
+  reset_link = `https://${config.SERVER_URL}/resetpass/${link_key}`;
   email_com = exec(`echo "Follow the link to reset your password:${reset_link}" | mail -s "CS URG Reset Password" ${email}`);
   email_com.on('exit', function (code) {
     if (code != 0) {
