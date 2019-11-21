@@ -5,6 +5,9 @@ const redis = require('redis');
 const session = require('express-session');
 const redisStore = require('connect-redis')(session);
 const got = require('got');
+const bcrypt = require('bcrypt');
+const exec = require('child_process').exec;
+
 // configurations for all the different things going on in this app
 const config = require('./config');
 var SKIP_DELETE_AUTH;
@@ -170,14 +173,44 @@ app.post('/req_reset', async (req, res) => {
     res.redirect('/userhome');
     return;
   }
-  // we create a hash from the email form feild and time stamp
+  // check if this is a valid email
   email = req.body.email;
-  time_stamp = Date.now()
+  valid_query = `select * from Users where email = "${email}";`;
+  try {
+    validity= await db_call(valid_query);
+  } catch (error) {
+    console.log("Query to validate reset email failed", valid_query);
+    res.render('pages/request_reset', {message: "Something went wrong. Please try again or report if problem persists"});
+    return;
+  }
+  // check if the email was correct so that we actually found a matching row in the db
+  if (user_result.length == 0) {
+    res.render('pages/request_reset', {message: "Invalid email address"});
+    return;
+  }
+  time_stamp = String(Date.now());
+  // we create a hash from the email form feild and time stamp
+  link_key = bcrypt.hashSync(time_stamp + email + time_stamp, "manz got a 20 killstreak in cod the other day ehh")
   // insert the hash and the email pair into the reset passwords sql table
-
-  // check return of the query, if there was a foreign key volation the user email never existed in the first place
-
+  insert_hash = `insert into Reset_Pass values ("${link_key}", "${email}", "${Date.now() + (config.RESET_LINK_TTL * 60000)}");`;
+  try {
+    reset_req = await db_call(insert_hash);
+  } catch (error) {
+    console.log("Query to insert reset email hash failed", insert_hash);
+    res.render('pages/request_reset', {message: "Something went wrong. Please try again or report if problem persists"});
+    return;
+  }
   // send email with the hash link and re render the same page but with message for success or failure for sending email
+  reset_link = `https://tracademic.utsc.utoronto.ca/resetpass/${link_key}`;
+  email_com = exec(`echo "Follow the link to reset your password:${reset_link}" | mail -s "CS URG Reset Password" ${email}`);
+  email_com.on('exit', function (code) {
+    if (code != 0) {
+      res.render('pages/request_reset', {message: "Something went wrong in sending email. Please try again or report if problem persists"});
+    } else {
+      res.render('pages/request_reset', {message: "Success! Check your email"});
+    }
+    return;
+  });
 })
 
 app.get('/resetpass/:reset_hash', async (req, res) => {
