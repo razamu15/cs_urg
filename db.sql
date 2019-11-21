@@ -10,6 +10,14 @@ CREATE TABLE `Users` (
 	PRIMARY KEY(`user_id`)
 );
 
+CREATE TABLE `Reset_Pass` (
+	`link_key` VARCHAR(255) NOT NULL,
+	`email` VARCHAR(255) NOT NULL,
+	`expiry` BIGINT NOT NULL,
+	FOREIGN KEY(`email`) REFERENCES `Users`(`email`),
+	PRIMARY KEY(`link_key`)
+)
+
 CREATE TABLE `Files` (
 	`file_id` INT NOT NULL AUTO_INCREMENT,
 	`link` VARCHAR(255) NOT NULL UNIQUE,
