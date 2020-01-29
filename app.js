@@ -180,7 +180,7 @@ app.post('/req_reset', async (req, res) => {
     validity= await db_call(valid_query);
   } catch (error) {
     console.log("Query to validate reset email failed", valid_query);
-    res.render('pages/request_reset', {message: "Something went wrong. Please try again or report if problem persists"});
+    res.render('pages/request_reset', {message: "Something went wrong. Please check email and try again or report if problem persists"});
     return;
   }
   // check if the email was correct so that we actually found a matching row in the db
@@ -215,18 +215,60 @@ app.post('/req_reset', async (req, res) => {
 
 app.get('/resetpass/:reset_hash', async (req, res) => {
   // lookup the hash given as the parameter in our database
-
-  // if it doesnt exist then return error, ow
-  
+  hash_query = `select * from Reset_Pass where link_key = "${req.params.reset_hash}";`;
+  invalid = true;
+  msg = "";
+  try {
+    hash_validity = await db_call(hash_query);
+  } catch (error) {
+    console.log("Query to validate reset hash failed", hash_query);
+    msg = "something went wrong, please report the problem";
+  }
+  // check get the time limit from the query 
+  if (hash_validity.length == 0) {
+    invalid = true;
+    msg = "Password reset link is invalid";
+  } else {
+    if (Date.now() <= hash_validity[0].expiry) {
+      invalid = false;
+      msg = "please enter your new password";
+    } else {
+      msg = "Password rest link has expired";
+    }
+  }
   // render the reset_password page
+  res.render('pages/reset_password', {invalid: invalid, message:msg});
 })
 
-app.post('resetpass/:reset_hash', async (req, res) => {
+app.post('/resetpass/:reset_hash', async (req, res) => {
   // lookup the hash given as the parameter in our database
-
+  hash_query = `select * from Reset_Pass where link_key = "${req.params.reset_hash}";`;
+  msg = "";
+  try {
+    hash_row = await db_call(hash_query);
+  } catch (error) {
+    console.log("Query to get reset hash failed", hash_query);
+    res.render('pages/reset_password', {invalid: true, message:"something went wrong, please report the problem"});
+    return;
+  }
+  // get the email from the query and combine it with the new password to make update_password sql
+  if (hash_row.length == 0) {
+    console.log("Query to get reset hash failed", hash_query);
+    res.render('pages/reset_password', {invalid: true, message:"invalid password reset link"});
+    return;
+  } else {
+    update_sql = `update Users set password = "${req.body.pass}" where email = "${hash_row[0].email}";`;
+  }
   // if it doesnt exist then return error, ow
-  
-  // update users table and set the password to the given password feild from the form
+  try {
+    upd_pass = await db_call(update_sql);
+  } catch (error) {
+    console.log("Query to update password failed", update_sql);
+    res.render('pages/reset_password', {invalid: true, message:"something went wrong in applying new password, please report the problem"});
+    return;
+  }
+  // everything was gucci, so return the user to the login page
+  res.redirect('/login');
 })
 
 app.get('/logout', (req, res) =>{

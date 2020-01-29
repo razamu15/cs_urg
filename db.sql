@@ -14,6 +14,7 @@ CREATE TABLE `Reset_Pass` (
 	`link_key` VARCHAR(255) NOT NULL,
 	`email` VARCHAR(255) NOT NULL,
 	`expiry` BIGINT NOT NULL,
+	`time_stamp` DATETIME NOT NULL,
 	FOREIGN KEY(`email`) REFERENCES `Users`(`email`),
 	PRIMARY KEY(`link_key`)
 )
