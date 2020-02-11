@@ -5,6 +5,8 @@ CREATE TABLE `Users` (
 	`user_id` INT NOT NULL AUTO_INCREMENT,
 	`email`	VARCHAR(255) NOT NULL UNIQUE,
 	`password` VARCHAR(255) NOT NULL,
+	`utorid` VARCHAR(32) NOT NULL,
+	`student_number` INT NOT NULL,
 	`is_active`	BOOLEAN,
 	`gender` VARCHAR(20),
 	PRIMARY KEY(`user_id`)

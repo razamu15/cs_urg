@@ -143,14 +143,14 @@ app.post('/login', async (req, res) => {
     user_result = user_result[0];
   }
   // we then check if the credentials are correct and if they are, we will create a session for them
-  if (user_result.password == req.body.password) {
-    // add their info to session which will automatically be stored in redis
+  if(bcrypt.compareSync(req.body.password, user_result.password)) {
+    // Passwords match add their info to session which will automatically be stored in redis
     req.session['user_id'] = user_result.user_id;
     req.session['email'] = user_result.email;
     // now we direct them to the dashboard
     res.redirect('/userhome');
-  } else {
-    // we render login page again but give a error message saying wrong password
+   } else {
+    // Passwords don't match we render login page again but give a error message saying wrong password
     res.render('pages/login', {message: "Incorrect password"});
   }
 })
@@ -257,7 +257,8 @@ app.post('/resetpass/:reset_hash', async (req, res) => {
     res.render('pages/reset_password', {invalid: true, message:"invalid password reset link"});
     return;
   } else {
-    update_sql = `update Users set password = "${req.body.pass}" where email = "${hash_row[0].email}";`;
+    let pass = bcrypt.hashSync(req.body.password, 4);
+    update_sql = `update Users set password = "${pass}" where email = "${hash_row[0].email}";`;
   }
   // if it doesnt exist then return error, ow
   try {
@@ -296,7 +297,8 @@ app.get('/register', (req, res) => {
 
 app.post('/register', async (req, res) => {
   // define the query and fill it with the information from the post request
-  insert_query = `insert into Users (email, password, is_active, gender) values ("${req.body.email}", "${req.body.password}", 1, "${req.body.gender}");`;
+  let pass = bcrypt.hashSync(req.body.password, 4);
+  insert_query = `insert into Users (email, utorid, student_number, password, is_active, gender) values ("${req.body.email}", "${req.body.utorid}", "${req.body.studentnum}", "${pass}", 1, "${req.body.gender}");`;
   // we run the query on the databse but if there is a unique email violation then the function will throw an error
   try{
     result = await db_call(insert_query);
