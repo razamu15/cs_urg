@@ -89,25 +89,24 @@ async function get_distributed_value() {
 
 
 app.get('/', (req, res) => {
-  if (req.session.user_id == 'admin') {
-    res.redirect('/adminhome');  
-  } else if (req.session.user_id) {
-    res.redirect('/userhome');  
-  } else {
+  // check if the user is laready logged in
+  if (!req.session.hasOwnProperty("is_admin")) {
     res.render('pages/external_view');
+  } else if (req.session.is_admin) {
+    res.redirect('/adminhome');
+  } else {
+    res.redirect('/userhome');  
   }
 })
 
 app.get('/login', (req, res) => {
-  // check if this session has a user_id which means it has already been authenticated
-  // and redirect based on which type of user it is
-  if (req.session.user_id == 'admin') {
-    res.redirect('/adminhome');  
-  } else if (req.session.user_id) {
-    res.redirect('/userhome');
-  } else {
+  if (!req.session.hasOwnProperty("is_admin")) {
     // show them the login page
     res.render('pages/login', {message: "Please enter your email and password"});
+  } else if (req.session.is_admin) {
+    res.redirect('/adminhome');
+  } else {
+    res.redirect('/userhome');  
   }
 })
 
@@ -116,36 +115,29 @@ app.get('/login', (req, res) => {
 // it looks for it in redis and if its there gives you back the modified session ow it gives
 // the browser default session which would be an unauthorized user
 app.post('/login', async (req, res) => {
-  // special login case for an admin account
-  admin_login = config.ADMIN_CREDS;
-  if (admin_login.email.includes(req.body.email) && admin_login.password.includes(req.body.password)) {
-    // add their info to session which will automatically be stored in redis
-    req.session['user_id'] = "admin";
-    req.session['email'] = req.body.email;
-    res.redirect('/adminhome');
-    return;
-  }
-
+  const user_query = `select * from Users where email = "${req.body.email}";`;
+  var user_result;
   // first we run the query on the database to get the relevant information for this user
-  user_query = `select * from Users where email = "${req.body.email}";`;
   try {
     user_result = await db_call(user_query);
+    // check if the email was correct so that we actually found a matching row in the db
+    if (user_result.length == 0) {
+      res.render('pages/login', {message: "Incorrect email"});
+      return;
+    } else {
+      user_result = user_result[0];
+    }
   } catch (error) {
     console.log("Query to verify login failed", user_query);
     res.render('pages/login', {message: "Something went wrong, Please try again later"});
     return;
   }
-  // check if the email was correct so that we actually found a matching row in the db
-  if (user_result.length == 0) {
-    res.render('pages/login', {message: "Incorrect email"});
-    return;
-  } else {
-    user_result = user_result[0];
-  }
+  
   // we then check if the credentials are correct and if they are, we will create a session for them
   if(bcrypt.compareSync(req.body.password, user_result.password)) {
     // Passwords match add their info to session which will automatically be stored in redis
     req.session['user_id'] = user_result.user_id;
+    req.session['is_admin'] = user_result.is_admin;
     req.session['email'] = user_result.email;
     // now we direct them to the dashboard
     res.redirect('/userhome');
@@ -156,165 +148,181 @@ app.post('/login', async (req, res) => {
 })
 
 app.get('/req_reset', (req, res) => {
-  if (req.session.user_id == 'admin') {
-    res.redirect('/adminhome');  
-  } else if (req.session.user_id) {
-    res.redirect('/userhome');  
-  } else {
+  if (!req.session.hasOwnProperty("is_admin")) {
     res.render('pages/request_reset', {message:""});
+  } else if (req.session.is_admin) {
+    res.redirect('/adminhome');
+  } else {
+    res.redirect('/userhome');  
   }
 })
 
 app.post('/req_reset', async (req, res) => {
-  if (req.session.user_id == 'admin') {
+  if (req.session.hasOwnProperty("is_admin") && req.session.is_admin) {
     res.redirect('/adminhome');
-    return;
-  } else if (req.session.user_id) {
+  } else if (req.session.hasOwnProperty("is_admin") && !req.session.is_admin) {
     res.redirect('/userhome');
-    return;
+  } else {
+      // check if this is a valid email
+      const email = req.body.email;
+      const valid_query = `select * from Users where email = "${email}";`;
+      var validity;
+      try {
+        validity = await db_call(valid_query);
+        // check if the email was correct so that we actually found a matching row in the db
+        if (validity.length == 0) {
+          res.render('pages/request_reset', {message: "Invalid email address"});
+          return;
+        }
+      } catch (error) {
+        console.log("Query to validate reset email failed", valid_query);
+        res.render('pages/request_reset', {message: "Something went wrong. Please check email and try again or report if problem persists"});
+        return;
+      }
+      
+      const time_stamp = String(Date.now());
+      // we create a hash from the email form feild and time stamp
+      const link_key = bcrypt.hashSync(time_stamp + email + time_stamp, config.HASH_COUNT);
+      // insert the hash and the email pair into the reset passwords sql table
+      const insert_hash = `insert into Reset_Pass values ("${link_key}", "${email}", "${Date.now() + (config.RESET_LINK_TTL * 60000)}", now());`;
+      try {
+        let reset_req = await db_call(insert_hash);
+      } catch (error) {
+        console.log("Query to insert reset email hash failed", insert_hash);
+        res.render('pages/request_reset', {message: "Something went wrong. Please try again or report if problem persists"});
+        return;
+      }
+      // send email with the hash link and re render the same page but with message for success or failure for sending email
+      let reset_link = `https://${config.SERVER_URL}/resetpass/${link_key}`;
+      let email_com = exec(`echo "Follow the link to reset your password:${reset_link}" | mail -s "CS URG Reset Password" ${email}`);
+      email_com.on('exit', function (code) {
+        if (code != 0) {
+          res.render('pages/request_reset', {message: "Something went wrong in sending email. Please try again or report if problem persists"});
+        } else {
+          res.render('pages/request_reset', {message: "Success! Check your email"});
+        }
+        return;
+      });
   }
-  // check if this is a valid email
-  email = req.body.email;
-  valid_query = `select * from Users where email = "${email}";`;
-  try {
-    validity= await db_call(valid_query);
-  } catch (error) {
-    console.log("Query to validate reset email failed", valid_query);
-    res.render('pages/request_reset', {message: "Something went wrong. Please check email and try again or report if problem persists"});
-    return;
-  }
-  // check if the email was correct so that we actually found a matching row in the db
-  if (validity.length == 0) {
-    res.render('pages/request_reset', {message: "Invalid email address"});
-    return;
-  }
-  time_stamp = String(Date.now());
-  // we create a hash from the email form feild and time stamp
-  link_key = bcrypt.hashSync(time_stamp + email + time_stamp, 4);
-  // insert the hash and the email pair into the reset passwords sql table
-  insert_hash = `insert into Reset_Pass values ("${link_key}", "${email}", "${Date.now() + (config.RESET_LINK_TTL * 60000)}");`;
-  try {
-    reset_req = await db_call(insert_hash);
-  } catch (error) {
-    console.log("Query to insert reset email hash failed", insert_hash);
-    res.render('pages/request_reset', {message: "Something went wrong. Please try again or report if problem persists"});
-    return;
-  }
-  // send email with the hash link and re render the same page but with message for success or failure for sending email
-  reset_link = `https://${config.SERVER_URL}/resetpass/${link_key}`;
-  email_com = exec(`echo "Follow the link to reset your password:${reset_link}" | mail -s "CS URG Reset Password" ${email}`);
-  email_com.on('exit', function (code) {
-    if (code != 0) {
-      res.render('pages/request_reset', {message: "Something went wrong in sending email. Please try again or report if problem persists"});
-    } else {
-      res.render('pages/request_reset', {message: "Success! Check your email"});
-    }
-    return;
-  });
+  
 })
 
 app.get('/resetpass/:reset_hash', async (req, res) => {
-  // lookup the hash given as the parameter in our database
-  hash_query = `select * from Reset_Pass where link_key = "${req.params.reset_hash}";`;
-  invalid = true;
-  msg = "";
-  try {
-    hash_validity = await db_call(hash_query);
-  } catch (error) {
-    console.log("Query to validate reset hash failed", hash_query);
-    msg = "something went wrong, please report the problem";
-  }
-  // check get the time limit from the query 
-  if (hash_validity.length == 0) {
-    invalid = true;
-    msg = "Password reset link is invalid";
+  if (req.session.hasOwnProperty("is_admin") && req.session.is_admin) {
+    res.redirect('/adminhome');
+  } else if (req.session.hasOwnProperty("is_admin") && !req.session.is_admin) {
+    res.redirect('/userhome');
   } else {
-    if (Date.now() <= hash_validity[0].expiry) {
-      invalid = false;
-      msg = "please enter your new password";
-    } else {
-      msg = "Password rest link has expired";
+    // lookup the hash given as the parameter in our database
+    const hash_query = `select * from Reset_Pass where link_key = "${req.params.reset_hash}";`;
+    let invalid = true;
+    let msg = "";
+    var hash_validity;
+    try {
+      hash_validity = await db_call(hash_query);
+    } catch (error) {
+      console.log("Query to validate reset hash failed", hash_query);
+      msg = "something went wrong, please report the problem";
     }
+    // check get the time limit from the query 
+    if (hash_validity.length == 0) {
+      invalid = true;
+      msg = "Password reset link is invalid";
+    } else {
+      if (Date.now() <= hash_validity[0].expiry) {
+        invalid = false;
+        msg = "please enter your new password";
+      } else {
+        msg = "Password rest link has expired";
+      }
+    }
+    // render the reset_password page
+    res.render('pages/reset_password', {invalid: invalid, message:msg});
   }
-  // render the reset_password page
-  res.render('pages/reset_password', {invalid: invalid, message:msg});
 })
 
 app.post('/resetpass/:reset_hash', async (req, res) => {
-  // lookup the hash given as the parameter in our database
-  hash_query = `select * from Reset_Pass where link_key = "${req.params.reset_hash}";`;
-  msg = "";
-  try {
-    hash_row = await db_call(hash_query);
-  } catch (error) {
-    console.log("Query to get reset hash failed", hash_query);
-    res.render('pages/reset_password', {invalid: true, message:"something went wrong, please report the problem"});
-    return;
-  }
-  // get the email from the query and combine it with the new password to make update_password sql
-  if (hash_row.length == 0) {
-    console.log("Query to get reset hash failed", hash_query);
-    res.render('pages/reset_password', {invalid: true, message:"invalid password reset link"});
-    return;
+  if (req.session.hasOwnProperty("is_admin") && req.session.is_admin) {
+    res.redirect('/adminhome');
+  } else if (req.session.hasOwnProperty("is_admin") && !req.session.is_admin) {
+    res.redirect('/userhome');
   } else {
-    let pass = bcrypt.hashSync(req.body.password, 4);
-    update_sql = `update Users set password = "${pass}" where email = "${hash_row[0].email}";`;
+      // lookup the hash given as the parameter in our database
+      const hash_query = `select * from Reset_Pass where link_key = "${req.params.reset_hash}";`;
+      var hash_row;
+      try {
+        hash_row = await db_call(hash_query);
+        if (hash_row.length == 0) {
+          console.log("Reset Hash doesnt exist", hash_query);
+          res.render('pages/reset_password', {invalid: true, message:"invalid password reset link"});
+          return;
+        } else {
+          hash_row = hash_row[0];
+        }
+      } catch (error) {
+        console.log("Query to get reset hash failed", hash_query);
+        res.render('pages/reset_password', {invalid: true, message:"something went wrong, please report the problem"});
+        return;
+      }
+      // get the email from the query and combine it with the new password to make update_password sql
+      let pass = bcrypt.hashSync(req.body.pass, config.HASH_COUNT);
+      const update_pass_sql = `update Users set password = "${pass}" where email = "${hash_row.email}";`;
+      // run the query
+      try {
+        let upd_pass = await db_call(update_pass_sql);
+      } catch (error) {
+        console.log("Query to update password failed", update_pass_sql);
+        res.render('pages/reset_password', {invalid: true, message:"something went wrong in applying new password, please report the problem"});
+        return;
+      }
+      // everything was gucci, so return the user to the login page
+      res.redirect('/login');
   }
-  // if it doesnt exist then return error, ow
-  try {
-    upd_pass = await db_call(update_sql);
-  } catch (error) {
-    console.log("Query to update password failed", update_sql);
-    res.render('pages/reset_password', {invalid: true, message:"something went wrong in applying new password, please report the problem"});
-    return;
-  }
-  // everything was gucci, so return the user to the login page
-  res.redirect('/login');
 })
 
 app.get('/logout', (req, res) =>{
-  // check if there is a session in the first place to destory 
-  if (req.session.user_id) {
+  if (req.session.hasOwnProperty("is_admin")) {
     req.session.destroy();
-    res.redirect('/');
-  } else {
-    res.redirect('/');
-  }
+  } 
+  res.redirect('/');
 })
 
 app.get('/register', (req, res) => {
-  // check if this session has a user_id which means it has already been authenticated
-  // and redirect based on which type of user it is
-  if (req.session.user_id == 'admin') {
-    res.redirect('/adminhome');  
-  } else if (req.session.user_id) {
+  if (req.session.hasOwnProperty("is_admin") && req.session.is_admin) {
+    res.redirect('/adminhome');
+  } else if (req.session.hasOwnProperty("is_admin") && !req.session.is_admin) {
     res.redirect('/userhome');
   } else {
-    // show them the login page
     res.render('pages/register', {message: "Please enter an email and password to register", path_to_text: config.CONSENT_TEXT});
   }
 })
 
 app.post('/register', async (req, res) => {
-  // define the query and fill it with the information from the post request
-  let pass = bcrypt.hashSync(req.body.password, 4);
-  insert_query = `insert into Users (email, utorid, student_number, password, is_active, gender) values ("${req.body.email}", "${req.body.utorid}", "${req.body.studentnum}", "${pass}", 1, "${req.body.gender}");`;
-  // we run the query on the databse but if there is a unique email violation then the function will throw an error
-  try{
-    result = await db_call(insert_query);
-  } catch (err) {
-    console.log("insert user query failed, because duplicate email.", insert_query);
-    res.render('pages/register', {message: "Unable to create user, email already in use", path_to_text: config.CONSENT_TEXT});
-    return;
+  if (req.session.hasOwnProperty("is_admin") && req.session.is_admin) {
+    res.redirect('/adminhome');
+  } else if (req.session.hasOwnProperty("is_admin") && !req.session.is_admin) {
+    res.redirect('/userhome');
+  } else {
+    // define the query and fill it with the information from the post request
+    let pass = bcrypt.hashSync(req.body.password, config.HASH_COUNT);
+    const insert_query = `insert into Users (email, utorid, is_admin, student_number, password, is_active, gender) values ("${req.body.email}", "${req.body.utorid}", false ,"${req.body.studentnum}", "${pass}", 1, "${req.body.gender}");`;
+    // we run the query on the databse but if there is a unique email violation then the function will throw an error
+    try{
+      var result = await db_call(insert_query);
+    } catch (err) {
+      console.log("insert user query failed, because duplicate email.", insert_query);
+      res.render('pages/register', {message: "Unable to create user, email already in use", path_to_text: config.CONSENT_TEXT});
+      return;
+    }
+    // if the query is ok then the user was creted and we redirect hem to the login page
+    res.redirect('/login');
   }
-  // if the query is ok then the user was creted and we redirect hem to the login page
-  res.redirect('/login');
 })
 
 app.get('/contact', (req, res) =>{
-  if (req.session.user_id == 'admin') {
+  if (req.session.hasOwnProperty("is_admin") && req.session.is_admin) {
     res.render('pages/contact_view', {action: "logout", home:"adminhome"}); 
-  } else if (req.session.user_id) {
+  } else if (req.session.hasOwnProperty("is_admin") && !req.session.is_admin) {
     res.render('pages/contact_view', {action: "logout", home:"userhome"});
   } else {
     res.render('pages/contact_view', {action: "login", home:""});
@@ -322,41 +330,35 @@ app.get('/contact', (req, res) =>{
 })
 
 app.get('/userhome', async (req, res) => {
-  // this page is not accessible if not signed in
-  if (!req.session.user_id) {
+  if (!req.session.hasOwnProperty("is_admin")) {
     res.redirect('/login');
-    return;
-  } else if (req.session.user_id == "admin") {
+  } else if (req.session.hasOwnProperty("is_admin") && req.session.is_admin) {
     res.redirect('/adminhome');
-    return;
   } else {
-    user_id = req.session.user_id;
+    // first we gott run the query for all the surveys that are active ie(publised and not expired)
+    const survey_query = `select * from Surveys where survey_id not in (select survey_id from Completed_Surveys where user_id = "${req.session.user_id}" and is_round = 0) and expiry_date > curdate() and is_published = 1;`;
+    var active_surveys;
+    try{
+      active_surveys = await db_call(survey_query);
+    } catch (err) {
+      console.log("Query to get active surveys for user failed", survey_query);
+    }
+    // finally we render the template with any surveys that have not yet been answered by this user
+    res.render('pages/user_home', { available_surveys: active_surveys});
   }
-  // first we gott run the query for all the surveys that are active ie(publised and not expired)
-  survey_query = `select * from Surveys where survey_id not in (select survey_id from Completed_Surveys where user_id = "${user_id}" and is_round = 0) and expiry_date > curdate() and is_published = 1;`;
-  try{
-    active_surveys = await db_call(survey_query);
-  } catch (err) {
-    console.log(survey_query, "failed");
-  }
-  // finally we render the template with any surveys that have not yet been answered by this user
-  res.render('pages/user_home', { available_surveys: active_surveys})
 })
 
 app.get('/userhome/survey/:survey_id', async (req, res) =>{
-  // this page is not accessible if not signed in
-  if (!req.session.user_id) {
+  if (!req.session.hasOwnProperty("is_admin")) {
     res.redirect('/login');
     return;
-  } else if (req.session.user_id == "admin") {
-    res.redirect('/');
+  } else if (req.session.hasOwnProperty("is_admin") && req.session.is_admin) {
+    res.redirect('/adminhome');
     return;
-  } else {
-    user_id = req.session.user_id;
-  }
+  } 
   // natural join the survey with the questions with the question options then order by ques_id then op_id
-  questions_query = ` select all_ques.ques_id, ques_type_id, ques_order_num, ques_count, title, info, op_id, label, text_associated from (select Questions.survey_id, ques_id, ques_type_id, ques_count, ques_order_num, Questions.title, Questions.info from Surveys inner join Questions on Surveys.survey_id = Questions.survey_id) as all_ques left join Options on Options.ques_id = all_ques.ques_id where survey_id = ${req.params.survey_id} order by all_ques.ques_order_num, op_id;`;
-  survey_query = `select * from Surveys where survey_id = ${req.params.survey_id}`
+  const questions_query = ` select all_ques.ques_id, ques_type_id, ques_order_num, ques_count, title, info, op_id, label, text_associated from (select Questions.survey_id, ques_id, ques_type_id, ques_count, ques_order_num, Questions.title, Questions.info from Surveys inner join Questions on Surveys.survey_id = Questions.survey_id) as all_ques left join Options on Options.ques_id = all_ques.ques_id where survey_id = ${req.params.survey_id} order by all_ques.ques_order_num, op_id;`;
+  const survey_query = `select * from Surveys where survey_id = ${req.params.survey_id}`
   
   try{
     // execute all three queries on the database
