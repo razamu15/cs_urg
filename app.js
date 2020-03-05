@@ -429,76 +429,44 @@ app.get('/userhome/survey/:survey_id', async (req, res) =>{
 })
 
 app.post('/userhome/survey/:survey_id', async (req, res) =>{
-  if (!req.session.user_id) {
-    res.sendStatus(401);
-    return;
-  } else if (req.session.user_id == "admin") {
-    res.sendStatus(403);
-    return;
-  } else if (req.session.email == "userview") {
-    res.sendStatus(200);
-    return;
-  }
-  file_fill = req.body.file_id;
-  text = req.body.text;
-  opt_id = req.body.opt;
-  opt_text = req.body.opt_text;
-  // define and fill in the response insert query
-  insert_query = `insert into Responses (ques_id, file_id, user_id, op_id, op_text, text_resp, time_started, time_ended) values (${req.body.ques_id}, ${file_fill ? file_fill : "NULL"}, ${req.session.user_id}, ${opt_id ? opt_id : "NULL"}, "${opt_text ? opt_text : "NULL"}", "${text ? text : "NULL"}", "${req.body.start_time}", "${req.body.end_time}");`;
+  if (!req.session.hasOwnProperty("is_admin")){
+    res.sendStatus(401);  // not logged in at all unauthrozed to post
+  } else if (req.session.hasOwnProperty("is_admin") && req.session.is_admin) {
+    res.sendStatus(403);  // logged in as admin cant do user actions
+  } else {
+    let file_fill = req.body.file_id;
+    let text = req.body.text;
+    let opt_id = req.body.opt;
+    let opt_text = req.body.opt_text;
+    // define and fill in the response insert query
+    let insert_query = `insert into Responses (ques_id, file_id, user_id, op_id, op_text, text_resp, time_started, time_ended) values (${req.body.ques_id}, ${file_fill ? file_fill : "NULL"}, ${req.session.user_id}, ${opt_id ? opt_id : "NULL"}, "${opt_text ? opt_text : "NULL"}", "${text ? text : "NULL"}", "${req.body.start_time}", "${req.body.end_time}");`;
 
-  // execute it on the database
-  try {
-    ins_result = await db_call(insert_query);
-    res.sendStatus(200);
-  } catch (err) {
-    console.log("failed to insert response in the db", insert_query);
-    res.sendStatus(501);
+    // execute it on the database
+    try {
+      ins_result = await db_call(insert_query);
+      res.sendStatus(200);
+    } catch (err) {
+      console.log("failed to insert response in the db", insert_query);
+      res.sendStatus(501);
+    } 
   }
 })
 
-app.post('/userhome/survey_complete/:survey_id', async (req, res) =>{
-  // check session
-  if (!req.session.user_id) {
-    res.sendStatus(401);
-    return;
-  } else if (req.session.user_id == "admin") {
-    res.sendStatus(403);
-    return;
-  } else if (req.session.email == "userview") {
-    res.sendStatus(200);
-    return;
-  }
-  // we difine and run the query that will mark this survey as completed for this user
-  finish_query = `insert into Completed_Surveys (user_id, survey_id, completion_date, is_round) values (${req.session.user_id}, ${req.params.survey_id}, now(), 0);`;
-  try {
-    result = await db_call(finish_query);
-    res.sendStatus(200);
-  } catch (error) {
-    console.log("query to mark survey completed, failed", finish_query);
-    res.sendStatus(501);
-  }
-})
-
-app.post('/userhome/round_complete/:survey_id', async (req, res) =>{
-  // check session
-  if (!req.session.user_id) {
-    res.sendStatus(401);
-    return;
-  } else if (req.session.user_id == "admin") {
-    res.sendStatus(403);
-    return;
-  } else if (req.session.email == "userview") {
-    res.sendStatus(200);
-    return;
-  }
-  // we difine and run the query that will mark this survey as completed for this user
-  finish_query = `insert into Completed_Surveys (user_id, survey_id, completion_date, is_round) values (${req.session.user_id}, ${req.params.survey_id}, now(), 1);`;
-  try {
-    result = await db_call(finish_query);
-    res.sendStatus(200);
-  } catch (error) {
-    console.log("query to record round completion, failed", finish_query);
-    res.sendStatus(501);
+app.post('/userhome/completed/:survey_type/:survey_id', async (req, res) =>{
+  if (!req.session.hasOwnProperty("is_admin")){
+    res.sendStatus(401);  // not logged in at all unauthrozed to post
+  } else if (req.session.hasOwnProperty("is_admin") && req.session.is_admin) {
+    res.sendStatus(403);  // logged in as admin cant do user actions
+  } else {
+    // we difine and run the query that will mark this survey as completed for this user
+    let finish_query = `insert into Completed_Surveys (user_id, survey_id, completion_date, is_round) values (${req.session.user_id}, ${req.params.survey_id}, now(), ${req.params.survey_type == "survey" ? 0 : 1});`;
+    try {
+      result = await db_call(finish_query);
+      res.sendStatus(200);
+    } catch (error) {
+      console.log("query to mark survey completed, failed", finish_query);
+      res.sendStatus(501);
+    }
   }
 })
 
@@ -579,115 +547,131 @@ app.get('/getfile/ques/:ques_id', async (req, res) =>{
 })
 
 app.get('/adminhome', async (req, res) =>{
-  // this page is not accessible if not signed in as admin
-  if (req.session.user_id != "admin") {
+  if (req.session.hasOwnProperty("is_admin") && req.session.is_admin) {
+    // we shall wait untill we ge the result from the query
+    try{
+      query_result = await db_call("select * from Studies;");
+    } catch (err){
+      // something is very badly wrong because we cant even display the home page, so we signout the user and show that a msg
+      console.log("query to get all studies failed", err);
+      req.session.destroy();
+      res.redirect('/');
+    }
+    // here we will list all the studies that are active and use the query to render in the html properly
+    res.render("pages/admin_home", { studies:query_result });
+  } else {
     res.redirect('/');
-    return;
-  }
-  // we shall wait untill we ge the result from the query
-  try{
-    query_result = await db_call("select * from Studies;");
-  } catch (err){
-    // something is very badly wrong because we cant even display the home page, so we signout the user and show that a msg
-    console.log("query to get all studies failed", err);
-    req.session.destroy();
-    res.redirect('/');
-  }
-  // here we will list all the studies that are active and use the query to render in the html properly
-  res.render("pages/admin_home", { studies:query_result });
+  } 
+  return;
 })
 
 app.get('/adminhome/study/:study_id', async (req, res) =>{
-  // this page is not accessible if not signed in as admin
-  if (req.session.user_id != "admin") {
-    res.redirect('/');
+  if (!req.session.hasOwnProperty("is_admin")) {
+    res.redirect('/login');
     return;
+  } else if (req.session.hasOwnProperty("is_admin") && !req.session.is_admin) {
+    res.redirect('/userhome');
+    return;
+  } else {
+    // use the url parameter to get the all the surveys for the needed study
+    var query_result;
+    try{
+      query_result = await db_call(`select * from Surveys where study_id = ${req.params.study_id};`);
+    } catch (err){
+      console.log("query to get all surveys for a study failed", err);
+      res.redirect("/adminhome");
+    }
+    res.render("pages/study_view", {study_id : req.params.study_id, surveys: query_result});
   }
-  // use the url parameter to get the all the surveys for the needed study
-  try{
-    query_result = await db_call(`select * from Surveys where study_id = ${req.params.study_id};`);
-  } catch (err){
-    console.log("query to get all surveys for a study failed", err);
-    res.redirect("/adminhome");
-  }
-  res.render("pages/study_view", {study_id : req.params.study_id, surveys: query_result});
 })
 
 app.post('/adminhome/create_study', async (req, res) => {
-  // this page is not accessible if not signed in as admin
-  if (req.session.user_id != "admin") {
-    res.redirect('/');
+  if (!req.session.hasOwnProperty("is_admin")) {
+    res.redirect('/login');
     return;
+  } else if (req.session.hasOwnProperty("is_admin") && !req.session.is_admin) {
+    res.redirect('/userhome');
+    return;
+  } else {
+    // take the info from the request body, and put it in the sql query
+    let study_query = `insert into Studies (title, info, is_active) values ("${req.body.title}", "${req.body.info}", 1);`;
+    // execute the sql query
+    try {
+      ins_result = await db_call(study_query);
+    } catch (err) {
+      console.log("failed to create new study", study_query);
+    }
+    res.redirect('/adminhome');
   }
-  // take the info from the request body, and put it in the sql query
-  study_query = `insert into Studies (title, info, is_active) values ("${req.body.title}", "${req.body.info}", 1);`
-  // execute the sql query
-  try {
-    ins_result = await db_call(study_query);
-  } catch (err) {
-    console.log("failed to create new study", study_query);
-  }
-  res.redirect('/adminhome');
 })
 
 app.get('/adminhome/study/:study_id/survey/:survey_id', async (req, res) =>{
-  // this page is not accessible if not signed in as admin
-  if (req.session.user_id != "admin") {
-    res.redirect('/');
+  if (!req.session.hasOwnProperty("is_admin")) {
+    res.redirect('/login');
     return;
+  } else if (req.session.hasOwnProperty("is_admin") && !req.session.is_admin) {
+    res.redirect('/userhome');
+    return;
+  } else {
+    // run the db query and get all the data we need for this survey
+    try{
+      query_result = await db_call(`select * from Surveys where survey_id = ${req.params.survey_id};`);
+    } catch (err){
+      console.log("query to get details for a survey failed" + err);
+      res.redirect(`/adminhome/study/${req.params.study_id}`);
+    }
+    res.render("pages/survey_view", {survey_info : query_result[0], study_id: req.params.study_id, survey_id:req.params.survey_id});
   }
-  // run the db query and get all the data we need for this survey
-  try{
-    query_result = await db_call(`select * from Surveys where survey_id = ${req.params.survey_id};`);
-  } catch (err){
-    console.log("query to get details for a survey failed" + err);
-    res.redirect(`/adminhome/study/${req.params.study_id}`);
-  }
-  res.render("pages/survey_view", {survey_info : query_result[0], study_id: req.params.study_id, survey_id:req.params.survey_id});
 })
 
 app.post('/adminhome/study/:study_id/survey/:survey_id', async (req, res) =>{
-  // this page is not accessible if not signed in as admin
-  if (req.session.user_id != "admin") {
-    res.redirect('/');
+  if (!req.session.hasOwnProperty("is_admin")) {
+    res.redirect('/login');
     return;
-  }
-  // i need to check if the 2 items from the request body are empty or not and build the query accordingly
-  pub_update = (req.body.is_published != "");
-  exp_update = (req.body.expiry_date != "");
-  if (pub_update && exp_update) {
-    update_query = `update Surveys set is_published = "${req.body.is_published}", expiry_date = "${req.body.expiry_date}" where survey_id = ${req.params.survey_id}`;
+  } else if (req.session.hasOwnProperty("is_admin") && !req.session.is_admin) {
+    res.redirect('/userhome');
+    return;
   } else {
-    update_query = `update Surveys set ${ pub_update ? "is_published = '" + req.body.is_published + "'" : "expiry_date = '" + req.body.expiry_date + "'"} where survey_id = ${req.params.survey_id};`;
+    // i need to check if the 2 items from the request body are empty or not and build the query accordingly
+    let pub_update = (req.body.is_published != "");
+    let exp_update = (req.body.expiry_date != "");
+    if (pub_update && exp_update) {
+      update_query = `update Surveys set is_published = "${req.body.is_published}", expiry_date = "${req.body.expiry_date}" where survey_id = ${req.params.survey_id}`;
+    } else {
+      update_query = `update Surveys set ${ pub_update ? "is_published = '" + req.body.is_published + "'" : "expiry_date = '" + req.body.expiry_date + "'"} where survey_id = ${req.params.survey_id};`;
+    }
+    // execute the db query to update the db
+    try{
+      result = await db_call(update_query);
+    } catch (err) {
+      console.log(update_query, "failed");
+    }
+    res.redirect(`/adminhome/study/${req.params.study_id}/survey/${req.params.survey_id}`);
   }
-  // execute the db query to update the db
-  try{
-    result = await db_call(update_query);
-  } catch (err) {
-    console.log(update_query, "failed");
-  }
-  res.redirect(`/adminhome/study/${req.params.study_id}/survey/${req.params.survey_id}`);
 })
 
 app.post('/reset/survey/:survey_id', async (req, res) => {
-  // this action is not accessible if not signed in as admin
-  if (req.session.user_id != "admin") {
-    res.sendStatus(401);
+  if (!req.session.hasOwnProperty("is_admin")) {
+    res.redirect('/login');
     return;
-  }
-  // now i delete all the answers that belong to any question in this survey
-  answers_rem = `delete from Responses where ques_id in (select ques_id from Questions where survey_id = ${req.params.survey_id});`;
-  // also delete records of any files that were used by questions in this survey
-  files_rem = `delete from Files_in_Use where ques_id in (select ques_id from Questions where survey_id = ${req.params.survey_id});`;
-  // also delete any records for people that have already completed this survey
-  completes_rem = `delete from Completed_Surveys where survey_id = ${req.params.survey_id};`;
-  try {
-    // if the queries succeeded, then we send a success status code ow we send a fail status code
-    result = await Promise.all([db_call(answers_rem), db_call(files_rem), db_call(completes_rem)]);
-    res.sendStatus(200);
-  } catch (err) {
-    console.log("survey reset failed");
-    res.sendStatus(501);
+  } else if (req.session.hasOwnProperty("is_admin") && !req.session.is_admin) {
+    res.redirect('/userhome');
+    return;
+  } else {
+    // now i delete all the answers that belong to any question in this survey
+    let answers_rem = `delete from Responses where ques_id in (select ques_id from Questions where survey_id = ${req.params.survey_id});`;
+    // also delete records of any files that were used by questions in this survey
+    let files_rem = `delete from Files_in_Use where ques_id in (select ques_id from Questions where survey_id = ${req.params.survey_id});`; 
+    // also delete any records for people that have already completed this survey
+    let completes_rem = `delete from Completed_Surveys where survey_id = ${req.params.survey_id};`;
+    try {
+      // if the queries succeeded, then we send a success status code ow we send a fail status code
+      result = await Promise.all([db_call(answers_rem), db_call(files_rem), db_call(completes_rem)]);
+      res.sendStatus(200);
+    } catch (err) {
+      console.log("survey reset failed");
+      res.sendStatus(501);
+    }
   }
 })
 
@@ -695,10 +679,10 @@ app.post('/delete/survey/:survey_id', async (req, res) => {
   // we will check the variable that will tell us if we wanna check the admin authorization or not.
   // this is so that we can execute this route internally with out needed session authorization
   if (!SKIP_DELETE_AUTH) {
-    if (req.session.user_id != "admin") {
-      res.sendStatus(401);
+    if (!req.session.hasOwnProperty("is_admin") || !req.session.is_admin) {
+      res.redirect('/login');
       return;
-    }  
+    }
   }
   // reset the variable that will skip authentication for this route
   SKIP_DELETE_AUTH = 0;
