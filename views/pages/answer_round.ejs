@@ -221,7 +221,7 @@
                 }
 
                 // we send the post request to indicate this survey has been completed
-                $.post("/userhome/round_complete/<%= survey_id %>", function (data, textStatus) {
+                $.post("/userhome/completed/round/<%= survey_id %>", function (data, textStatus) {
                     if (data != "OK") {
                         // show message on dom saying there was a fail
                         console.error("Updating status of survey failed", textStatus);

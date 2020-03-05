@@ -716,38 +716,30 @@ app.post('/delete/survey/:survey_id', async (req, res) => {
   }
 });
 
-app.get('/adminhome/study/:study_id/create_survey', async (req, res) => {
-  // this page is not accessible if not signed in as admin
-  if (req.session.user_id != "admin") {
-    res.redirect('/');
+app.get('/adminhome/study/:study_id/create/:survey_type', async (req, res) => {
+  if (!req.session.hasOwnProperty("is_admin")) {
+    res.redirect('/login');
     return;
-  }
-  // we shall wait untill we ge the result from the query
-  try{
-    query_result = await db_call("select * from Question_Types;");
-  } catch (err){
-    console.log("question Types query failed" + err);
-    res.redirect(`/adminhome/study/${req.params.study_id}/`);
+  } else if (req.session.hasOwnProperty("is_admin") && !req.session.is_admin) {
+    res.redirect('/userhome');
     return;
+  } else {
+    // we shall wait untill we ge the result from the query
+    try{
+      var query;
+      if (req.params.survey_type == "survey"){
+        query = "select * from Question_Types;";
+      } else {
+        query = "select * from Question_Types where has_file = 1;";
+      }
+      query_result = await db_call(query);
+    } catch (err){
+      console.log("question Types query failed" + err);
+      res.redirect(`/adminhome/study/${req.params.study_id}/`);
+      return;
+    }
+    res.render(`pages/make_${req.params.survey_type == "survey" ? "survey" : "round"}`, { ques_types_query : query_result, study_id: req.params.study_id });
   }
-  res.render('pages/make_survey', { ques_types_query : query_result, study_id: req.params.study_id });
-});
-
-app.get('/adminhome/study/:study_id/create_round', async (req, res) => {
-  // this page is not accessible if not signed in as admin
-  if (req.session.user_id != "admin") {
-    res.redirect('/');
-    return;
-  }
-  // we shall wait untill we ge the result from the query
-  try{
-    query_result = await db_call("select * from Question_Types where has_file = 1;");
-  } catch (err){
-    console.log("question Types query failed" + err);
-    res.redirect(`/adminhome/study/${req.params.study_id}/`);
-    return;
-  }
-  res.render('pages/make_round', { ques_types_query : query_result, study_id: req.params.study_id });
 });
 
 app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
