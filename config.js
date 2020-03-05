@@ -11,7 +11,6 @@ config.REDIS_PORT = 6379;
 config.REDIS_HOST = 'localhost';
 config.SESSION_TTL = 1200;
 config.DIST_OVERLAP = 2;
-config.ADMIN_CREDS = { email: ['admin', 'brian.harrington@utsc.utoronto.ca'], password: ['UTSC_CS_admin321!', 'password'] };
 config.RESET_LINK_TTL = 30;
 config.SERVER_URL = "tracademic.utsc.utoronto.ca";
 config.HASH_COUNT = 4;
