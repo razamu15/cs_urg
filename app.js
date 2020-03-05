@@ -140,7 +140,7 @@ app.post('/login', async (req, res) => {
     req.session['is_admin'] = user_result.is_admin;
     req.session['email'] = user_result.email;
     // now we direct them to the dashboard
-    res.redirect('/userhome');
+    res.redirect(`/${ req.session['is_admin'] ? "adminhome" : "userhome" }`);
    } else {
     // Passwords don't match we render login page again but give a error message saying wrong password
     res.render('pages/login', {message: "Incorrect password"});
@@ -355,10 +355,11 @@ app.get('/userhome/survey/:survey_id', async (req, res) =>{
   } else if (req.session.hasOwnProperty("is_admin") && req.session.is_admin) {
     res.redirect('/adminhome');
     return;
-  } 
+  }
   // natural join the survey with the questions with the question options then order by ques_id then op_id
   const questions_query = ` select all_ques.ques_id, ques_type_id, ques_order_num, ques_count, title, info, op_id, label, text_associated from (select Questions.survey_id, ques_id, ques_type_id, ques_count, ques_order_num, Questions.title, Questions.info from Surveys inner join Questions on Surveys.survey_id = Questions.survey_id) as all_ques left join Options on Options.ques_id = all_ques.ques_id where survey_id = ${req.params.survey_id} order by all_ques.ques_order_num, op_id;`;
-  const survey_query = `select * from Surveys where survey_id = ${req.params.survey_id}`
+  const survey_query = `select * from Surveys where survey_id = ${req.params.survey_id}`;
+  var questions, survey, qtypes;
   
   try{
     // execute all three queries on the database
@@ -374,14 +375,15 @@ app.get('/userhome/survey/:survey_id', async (req, res) =>{
   
   // now that we have the data that we need from the databse, we will format and categorize it into arrays and objects 
   // so that its easier to render on the webpage
-  qtypes_json = {}
+  let qtypes_json = {}
   for (const row of qtypes) {
     qtype_obj = {...row};
     qtypes_json[row.ques_type_id] = qtype_obj;
   }
   // now we deal with the survey data
-  survey_results = survey[0];
+  let survey_results = survey[0];
   ques_array = [];
+  var qnum, ques_obj;
   // loop through all the rows from the questions query and create sets of json data
   // for each question which will then be rnedered by the front end
   for (const ques_row of questions) {
@@ -410,7 +412,7 @@ app.get('/userhome/survey/:survey_id', async (req, res) =>{
       // there is already an object in the array for this question which means that 
       // we need to add the extra option information to the options list
       // get the predfined option array
-      ques_opt_array = ques_array[qnum].options;
+      let ques_opt_array = ques_array[qnum].options;
       // define and fill new option obj and push it to the array inside of the ques obj
       opt_obj = {};
       opt_obj['id'] = ques_row.op_id;
@@ -471,79 +473,86 @@ app.post('/userhome/completed/:survey_type/:survey_id', async (req, res) =>{
 })
 
 app.get('/getfile/ques/:ques_id', async (req, res) =>{
-  // check session
-  if (!req.session.user_id) {
-    res.sendStatus(401);
-    return;
-  } else if (req.session.user_id == "admin") {
-    res.sendStatus(403);
-    return;
-  } else if (req.session.email == "userview") {
-    res.sendStatus(200);
-    return;
-  }
-  // first we run the query to get any files that have not been used at all for this question
-  fresh_files_query = `select * from Files where Files.file_id not in (select file_id from Files_in_Use where ques_id = ${req.params.ques_id}) and is_active = 1;`;
-  try {
-    fresh_files = await db_call(fresh_files_query);
-  } catch (error) {
-    console.log("error in fresh query:", fresh_files_query);
-    // the file was not marked inactive, something went wrong
-    res.sendStatus(501);
-    return;
-  }
-  // we now check if there were any rows returned and if there werent, then we do the next query
-  if (fresh_files.length != 0) {
-    // this means there were files in the original table
-    rand_int = Math.floor(Math.random() * (fresh_files.length - 1 - 0 + 1) + 0);
-    selected_row = fresh_files[rand_int];
-    // we have our row and file that we will send back, update its count in the database and return it
-    update_count = `insert into Files_in_Use (file_id, ques_id, count) values (${selected_row.file_id},${req.params.ques_id}, 1);`
-    try {
-      ins_result = await db_call(update_count);
-      // return with the query data
-      res.json(selected_row);
-      return;
-    } catch (error) {
-      console.log("error in insert query");
-      // the file was not marked inactive, something went wrong
-      res.sendStatus(501);
-      return;
-    }
+  if (!req.session.hasOwnProperty("is_admin")){
+    res.sendStatus(401);  // not logged in at all unauthrozed to post
+  } else if (req.session.hasOwnProperty("is_admin") && req.session.is_admin) {
+    res.sendStatus(403);  // logged in as admin cant do user actions
   } else {
-    // if the fresh files query did result in 0 rows then all files have been sent out at least once, so we need to get the
-    // files id from the Files_in_Use table
-    query = `select * from (select * from Files_in_Use where count = (select MIN(count) from Files_in_Use) and file_id not in (select file_id from Responses where user_id = ${req.session.user_id} and ques_id = ${req.params.ques_id})) as possibles inner join Files on possibles.file_id = Files.file_id;`;
+    let fresh_files_query = `select * from Files where Files.file_id not in (select file_id from Files_in_Use where ques_id = ${req.params.ques_id}) and is_active = 1;`;
     try {
-      files = await db_call(query);
+      fresh_files = await db_call(fresh_files_query);
     } catch (error) {
-      console.log("error in used files query:", query);
+      console.log("error in fresh query:", fresh_files_query);
       // the file was not marked inactive, something went wrong
       res.sendStatus(501);
       return;
     }
-    // if the used files also return no results, then there are no more files to serve
-    if (files.length == 0) {
-      res.sendStatus(422);
-      return;
-    }
-    // after getting the files, we randomly pick one row from the results
-    rand_int = Math.floor(Math.random() * (files.length - 1 - 0 + 1) + 0);
-    selected_row = files[rand_int];
-    // we have our row and file that we will send back, update its count in the database and return it
-    update_count = `update Files_in_Use set count = ${ +selected_row.count + 1} where file_id = ${selected_row.file_id} and ques_id = ${req.params.ques_id};`;
-    try {
-      upd_result = await db_call(update_count);
-      // return with the query data
-      res.json(selected_row);
-      return;
-    } catch (error) {
-      console.log("error in update query:", update_count);
-      // the file was not marked inactive, something went wrong
-      res.sendStatus(501);
-      return;
+    var rand_int, selected_row;
+    // we now check if there were any rows returned and if there werent, then we do the next query
+    if (fresh_files.length != 0) {
+      // this means there were files in the original table
+      rand_int = Math.floor(Math.random() * (fresh_files.length - 1 - 0 + 1) + 0);
+      selected_row = fresh_files[rand_int];
+      // we have our row and file that we will send back, update its count in the database and return it
+      let update_count = `insert into Files_in_Use (file_id, ques_id, count) values (${selected_row.file_id},${req.params.ques_id}, 1);`
+      try {
+        ins_result = await db_call(update_count);
+        // return with the query data
+        res.json(selected_row);
+        return;
+      } catch (error) {
+        console.log("error in insert query");
+        // the file was not marked inactive, something went wrong
+        res.sendStatus(501);
+        return;
+      }
+    } else {
+      // if the fresh files query did result in 0 rows then all files have been sent out at least once, so we need to get the
+      // files id from the Files_in_Use table
+      let query = `select * from (select * from Files_in_Use where count = (select MIN(count) from Files_in_Use) and file_id not in (select file_id from Responses where user_id = ${req.session.user_id} and ques_id = ${req.params.ques_id})) as possibles inner join Files on possibles.file_id = Files.file_id;`;
+      try {
+        files = await db_call(query);
+      } catch (error) {
+        console.log("error in used files query:", query);
+        // the file was not marked inactive, something went wrong
+        res.sendStatus(501);
+        return;
+      }
+      // if the used files also return no results, then there are no more files to serve
+      if (files.length == 0) {
+        res.sendStatus(422);
+        return;
+      }
+      // after getting the files, we randomly pick one row from the results
+      rand_int = Math.floor(Math.random() * (files.length - 1 - 0 + 1) + 0);
+      selected_row = files[rand_int];
+      // we have our row and file that we will send back, update its count in the database and return it
+      let update_count = `update Files_in_Use set count = ${ +selected_row.count + 1} where file_id = ${selected_row.file_id} and ques_id = ${req.params.ques_id};`;
+      try {
+        upd_result = await db_call(update_count);
+        // return with the query data
+        res.json(selected_row);
+        return;
+      } catch (error) {
+        console.log("error in update query:", update_count);
+        // the file was not marked inactive, something went wrong
+        res.sendStatus(501);
+        return;
+      }
     }
   }
+  // // check session
+  // if (!req.session.user_id) {
+  //   res.sendStatus(401);
+  //   return;
+  // } else if (req.session.user_id == "admin") {
+  //   res.sendStatus(403);
+  //   return;
+  // } else if (req.session.email == "userview") {
+  //   res.sendStatus(200);
+  //   return;
+  // }
+  // first we run the query to get any files that have not been used at all for this question
 })
 
 app.get('/adminhome', async (req, res) =>{
@@ -743,9 +752,11 @@ app.get('/adminhome/study/:study_id/create/:survey_type', async (req, res) => {
 });
 
 app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
-  // this page is not accessible if not signed in as admin
-  if (req.session.user_id != "admin") {
-    res.redirect('/');
+  if (!req.session.hasOwnProperty("is_admin")) {
+    res.redirect('/login');
+    return;
+  } else if (req.session.hasOwnProperty("is_admin") && !req.session.is_admin) {
+    res.redirect('/userhome');
     return;
   }
   // we will first loop through the raw form data and sort it into arrays and objects for
