@@ -5,43 +5,48 @@
     <link rel="stylesheet" href="/css/standard.css">
     <link rel="stylesheet" href="/css/login.css">
     <title>Register</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 </head>
 
 <body>
     <%- include('../partials/navbar', {action:"login", home:""}) %>
     <div id="content">
 
-            <div id="pg-cont">
-                <h2 class="sub-header">Register</h2>
-                <%= message %>
-                <form id="register" action="/register" method="POST">
-                    <input type="text" name="email" id="email_input" placeholder="Email" required><br>
-                    <input type="text" name="utorid" id="utor_input" placeholder="Utorid" required><br>
-                    <input type="text" name="studentnum" id="studnum_input" placeholder="Student Id" required><br>
-                    <input type="text" name="password" id="pass_input" placeholder="Password" required><br>
-                    <input type="text" name="gender" id="gend_input" placeholder="Gender (optional)"><br>
-                </form>
-                <iframe id="agreement" src="<%= path_to_text %>"></iframe>
-                <a href="<%= path_to_text %>" target="_blank">Terms and Conditions</a> <br>
-                <input type="checkbox" name="agree" id="agree" form="register" required><label for="agree">I agree to the terms listed in the consent document above</label><br>
-                <input type="submit" value="submit" form="register">
-            </div>
-    
+        <div id="pg-cont">
+            <h2 class="sub-header">Register</h2>
+            <%= message %>
+            <form id="register" action="/register" method="POST">
+                <input type="text" name="email" id="email_input" placeholder="Email" required><br>
+                <input type="text" name="utorid" id="utor_input" placeholder="Utorid" required><br>
+                <input type="text" name="studentnum" id="studnum_input" placeholder="Student Id" required><br>
+                <input type="text" name="password" id="pass_input" placeholder="Password" required><br>
+                <input type="text" name="gender" id="gend_input" placeholder="Gender (optional)"><br>
+            </form>
+            <iframe id="agreement" src="<%= path_to_text %>"></iframe>
+            <a href="<%= path_to_text %>" target="_blank">Terms and Conditions</a> <br>
+            <input type="checkbox" name="agree" id="agree" form="register" required><label for="agree">I agree to the
+                terms listed in the consent document above</label><br>
+            <input type="submit" value="submit" form="register">
         </div>
+
+    </div>
 
     <script>
 
-        $("#resgister").submit(function(event) {
-            let email_regex = /[a-z]*\.*[a-z]*@mail.utoronto.ca/;
-            form_data = $(this).serializeArray();
-            if (email_regex.exec(form_data[0]).index != 0 ){
-                // the entire email address didnt match the regex so we dont allow that
-                alert("Invalid Email, Email should be of the form ___@mail.utoronto.ca");
-                event.preventDefault();
-                return;
-            }
+        $(document).ready(function () {
+
+            $("#resgister").submit(function (event) {
+                let email_regex = /[a-z]*\.*[a-z]*@[a-z]*.utoronto.ca/;
+                form_data = $(this).serializeArray();
+                if (email_regex.exec(form_data[0]).index != 0) {
+                    // the entire email address didnt match the regex so we dont allow that
+                    alert("Invalid Email, Email should be of the form ___@mail.utoronto.ca");
+                    event.preventDefault();
+                    return;
+                }
+            })
         })
-        
+
 
     </script>
 </body>

@@ -194,7 +194,7 @@ app.post('/req_reset', async (req, res) => {
       }
       // send email with the hash link and re render the same page but with message for success or failure for sending email
       let reset_link = `https://${config.SERVER_URL}/resetpass/${link_key}`;
-      let email_com = exec(`echo "Follow the link to reset your password:${reset_link}" | mail -s "CS URG Reset Password" ${email}`);
+      let email_com = exec(`echo 'Follow the link to reset your password:${reset_link}' | mail -s "CS URG Reset Password" ${email}`);
       email_com.on('exit', function (code) {
         if (code != 0) {
           res.render('pages/request_reset', {message: "Something went wrong in sending email. Please try again or report if problem persists"});
@@ -894,6 +894,8 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
   res.redirect(`/adminhome/study/${req.params.study_id}/`);
 });
 
+
+
 app.get('/adminhome/dashboard/user', async (req, res) => {
   // first we want to do session stuff
 
@@ -913,9 +915,6 @@ app.get('/adminhome/dashboard/user', async (req, res) => {
   // render ejs
   res.render('pages/user_dash', {user_data: user_result, user_completions: user_completed});
 })
-
-
-
 
 app.get('/adminhome/dashboard/file', async (req, res) => {
   // first we want to do session stuff
@@ -950,5 +949,5 @@ app.listen(config.PORT, () => {
   *   to the same count. If a user requests a file but they have already answered for all the files that have the lowest current 
   *   count then they will not be given any more files even if they can complete questions for files of the second lowest count.
   * 
-  * delete row cascade
+  * transactions for creating surveys
   * */
