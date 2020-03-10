@@ -182,7 +182,8 @@ app.post('/req_reset', async (req, res) => {
       
       const time_stamp = String(Date.now());
       // we create a hash from the email form feild and time stamp
-      const link_key = bcrypt.hashSync(time_stamp + email + time_stamp, config.HASH_COUNT);
+      let link_key = bcrypt.hashSync(time_stamp + email + time_stamp, config.HASH_COUNT);
+      link_key = link_key.replace(/[/]+/g, '');
       // insert the hash and the email pair into the reset passwords sql table
       const insert_hash = `insert into Reset_Pass values ("${link_key}", "${email}", "${Date.now() + (config.RESET_LINK_TTL * 60000)}", now());`;
       try {
