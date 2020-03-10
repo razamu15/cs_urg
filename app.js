@@ -895,6 +895,44 @@ app.post('/adminhome/study/:study_id/create_survey', async (req, res) => {
 });
 
 
+app.get('/adminhome/dashboard/user', async (req, res) => {
+  // first we want to do session stuff
+
+  // then we will execute the queries to get user data
+  // RIGHT NOW THE USER ID IS HARDCODED AS 4 IN THE QUERY OFC CHANGE THAT
+  const user_data_query = `select all_ques.user_id, all_ques.op_id, all_ques.text_resp, all_ques.time_started, all_ques.time_ended, all_ques.title as ques_title, Options.label as op_label  from (select Responses.user_id, Responses.op_id, Responses.text_resp, Responses.time_started, Responses.time_ended, Questions.title from Responses inner join Questions on Responses.ques_id = Questions.ques_id) as all_ques left join Options on Options.op_id = all_ques.op_id where all_ques.user_id = 4;`;
+  const user_complete_query = `select * from Completed_Surveys where user_id = 4`;
+  var user_result;
+  var user_completed;
+  // first we run the query on the database to get the relevant information for this user
+  try {
+    user_result = await db_call(user_data_query);
+    user_completed = await db_call(user_complete_query);
+  } catch (error) {
+    console.log("Query to get users data failed", user_query);
+  }
+  // render ejs
+  res.render('pages/user_dash', {user_data: user_result, user_completions: user_completed});
+})
+
+app.get('/adminhome/dashboard/file', async (req, res) => {
+  // first we want to do session stuff
+
+  // then we will execute the queries to get user data
+  // RIGHT NOW THE USER ID IS HARDCODED AS 4 IN THE QUERY OFC CHANGE THAT
+  const file_data_query = `select all_files.file_id, all_files.ques_id, all_files.user_id, all_files.op_id, all_files.text_resp, all_files.time_started, all_files.time_ended, all_files.ques_title, all_files.op_label, Users.email as user_email from (select all_ques.file_id, all_ques.user_id, all_ques.op_id,all_ques.ques_id, all_ques.text_resp, all_ques.time_started, all_ques.time_ended, all_ques.title as ques_title, Options.label as op_label  from (select Responses.file_id, Responses.ques_id, Responses.user_id, Responses.op_id, Responses.text_resp, Responses.time_started, Responses.time_ended, Questions.title from Responses inner join Questions on Responses.ques_id = Questions.ques_id) as all_ques left join Options on Options.op_id = all_ques.op_id where all_ques.file_id = 5) as all_files left join Users on all_files.user_id = Users.user_id;`;
+  var file_data;
+  // first we run the query on the database to get the relevant information for this user
+  try {
+    file_data = await db_call(file_data_query);
+  } catch (error) {
+    console.log("Query to get users data failed", user_query);
+  }
+  // render ejs
+  res.render('pages/file_dash', {file_data: file_data});
+})
+
+
 app.listen(config.PORT, () => {
   console.log(`Server running on port ${config.PORT}`);
 })
